@@ -148,6 +148,8 @@ function renderItens(itens, itemUrl) {
         return;
     }
 
+    const comResultado = itens.filter(i => i.temResultado).length;
+
     let html = `<div class="tabela-wrap"><table>
         <thead><tr>
             <th>#</th><th>Descrição</th><th>Qtd.</th><th>Unit. estimado</th>
@@ -155,13 +157,22 @@ function renderItens(itens, itemUrl) {
         </tr></thead><tbody>`;
 
     itens.forEach(item => {
-        const temResultado = item.temResultado ? '<span class="tag">homologado</span>' : '<span class="mudo">—</span>';
+        const sigiloso = item.orcamentoSigiloso === true;
+
+        const estimado = sigiloso
+            ? '<span class="tag">sigiloso</span>'
+            : moeda(item.valorUnitarioEstimado);
+
+        const situacao = item.temResultado
+            ? '<span class="tag">homologado</span>'
+            : '<span class="mudo">sem resultado</span>';
+
         html += `<tr>
             <td>${escapar(item.numeroItem)}</td>
             <td>${escapar(item.descricao || '')}</td>
             <td class="num">${escapar(item.quantidade ?? '')} ${escapar(item.unidadeMedida || '')}</td>
-            <td class="num">${moeda(item.valorUnitarioEstimado)}</td>
-            <td>${temResultado}</td>
+            <td class="num">${estimado}</td>
+            <td>${situacao}</td>
             <td>${item.temResultado
                 ? `<button class="mini" onclick="verPrecos(this, '${escapar(itemUrl)}', ${Number(item.numeroItem)})">Preços</button>
                    <div></div>`
@@ -170,6 +181,23 @@ function renderItens(itens, itemUrl) {
     });
 
     html += '</tbody></table></div>';
+
+    if (comResultado === 0) {
+        html += `<div class="aviso" style="margin-top:14px">
+            <strong>Nenhum item desta contratação tem preço homologado publicado.</strong><br>
+            O botão <em>Preços</em> só aparece em itens já julgados. Nesta contratação o
+            resultado ainda não foi divulgado no PNCP.
+        </div>`;
+    }
+
+    if (itens.some(i => i.orcamentoSigiloso === true)) {
+        html += `<div class="aviso" style="margin-top:10px">
+            Esta contratação tem <strong>orçamento sigiloso</strong>, permitido pelo
+            art. 24 da Lei 14.133/2021. Por isso os valores estimados aparecem como
+            zero ou ocultos — é a informação publicada, não uma falha de leitura.
+        </div>`;
+    }
+
     area.innerHTML = html;
 }
 
