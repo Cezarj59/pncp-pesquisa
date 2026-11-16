@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resultados — Licit@Gov</title>
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<header class="topo">
+    <h1>Licit@Gov <small>Pesquisa de compras públicas no PNCP</small></h1>
+    <nav>
+        <a href="index.html">Início</a>
+        <a href="editais.html" data-tipo="edital">Editais</a>
+        <a href="atas.html" data-tipo="ata">Atas de Preços</a>
+        <a href="contratos.html" data-tipo="contrato">Contratos</a>
+    </nav>
+</header>
+
+<main>
+
+    <div class="card">
+        <div class="linha">
+            <h2 id="titulo">Resultados</h2>
+            <span class="espaco"></span>
+            <a class="link" id="voltar" href="editais.html">← Nova pesquisa</a>
+        </div>
+
+        <div id="status" style="margin-top:12px"></div>
+        <div id="tabela"></div>
+    </div>
+
+</main>
+
+<script src="js/filtros.js"></script>
+<script src="js/api.js"></script>
+<script src="js/resultados.js"></script>
+
+</body>
+</html>
