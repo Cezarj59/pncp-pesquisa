@@ -27,6 +27,11 @@ const PNCP = (() => {
             if (!achado) return null;
 
             const destino = new URL(achado[0]);
+
+            // A mensagem costuma vir com placeholders literais
+            // ({cnpj}, {ano}) em vez dos valores. Seguir essa URL gera 400.
+            if (destino.pathname.includes('{')) return null;
+
             return `${destino.origin.replace(/:\d+$/, '')}${destino.pathname}${destino.search}`;
 
         } catch (_) {

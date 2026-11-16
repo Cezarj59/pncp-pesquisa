@@ -259,6 +259,13 @@ function mensagemErro(erro) {
         return 'Limite de consultas do PNCP atingido. Aguarde alguns minutos.';
     }
 
+    if (/HTTP (400|404)/.test(texto)) {
+        return 'O PNCP não devolveu os dados completos desta contratação. Isso costuma '
+             + 'acontecer nas primeiras horas após a publicação: o registro já aparece na '
+             + 'listagem e nos documentos, mas o detalhe ainda não foi indexado. '
+             + 'Os documentos, quando existirem, aparecem abaixo.';
+    }
+
     return texto;
 }
 
