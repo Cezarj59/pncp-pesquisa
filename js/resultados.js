@@ -27,6 +27,10 @@ function contem(valor, termo) {
 }
 
 function numero(v) {
+    // Campo vazio precisa virar null, não 0 — senão o filtro de valor
+    // máximo exclui todo registro que tenha valor.
+    if (v === null || v === undefined || v === '') return null;
+
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
 }
@@ -71,6 +75,7 @@ function aplicarFiltros(itens) {
     const tipoContrato = p.get('tipoContrato');
     const valorMin = numero(p.get('valorMin'));
     const valorMax = numero(p.get('valorMax'));
+    const comValor = p.get('comValor');
 
     const dias = Number(p.get('dias') || 0);
     const corte = dias > 0 ? new Date(Date.now() - dias * 86400000) : null;
@@ -108,6 +113,19 @@ function aplicarFiltros(itens) {
 
         if (valorMin !== null && (valor === null || valor < valorMin)) return false;
         if (valorMax !== null && (valor === null || valor > valorMax)) return false;
+
+        // Só registros cujo valor esteja realmente publicado
+        if (comValor === 'sim') {
+            const estimado = numero(item.valor_total_estimado) || 0;
+            const homologado = numero(item.valor_total_homologado) || 0;
+            const global = numero(item.valor_global) || 0;
+
+            const referencia = tipo === 'contrato'
+                ? (global || homologado)
+                : (estimado || homologado);
+
+            if (referencia <= 0) return false;
+        }
 
         if (corte) {
             const referencia = item.data_publicacao_pncp || item.data_assinatura;
