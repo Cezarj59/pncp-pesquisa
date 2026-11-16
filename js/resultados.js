@@ -180,6 +180,13 @@ function renderizarTabela() {
     itens.forEach(item => {
         const link = `detalhe.html?u=${encodeURIComponent(item.item_url || '')}`;
         const acao = `<td><a class="link" href="${link}">Detalhes →</a></td>`;
+
+        // Guarda o registro para a página de detalhe conseguir exibir
+        // ao menos o resumo, caso a API recuse a consulta.
+        try {
+            sessionStorage.setItem(`pncp:${item.item_url || ''}`, JSON.stringify(item));
+        } catch (_) { /* armazenamento indisponível */ }
+
         html += `<tr>${celulas(estado.tipo, item).join('')}${acao}</tr>`;
     });
 

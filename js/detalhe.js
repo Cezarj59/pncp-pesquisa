@@ -208,6 +208,59 @@ function renderTermos(termos) {
     area.insertAdjacentHTML('beforeend', html);
 }
 
+/* ---------- resumo a partir da listagem ---------- */
+
+function lerCache(itemUrl) {
+    try {
+        const bruto = sessionStorage.getItem(`pncp:${itemUrl}`);
+        return bruto ? JSON.parse(bruto) : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+function mensagemErro(erro) {
+    const texto = String((erro && erro.message) || erro || '');
+
+    if (/failed to fetch|networkerror|load failed|network request failed/i.test(texto)) {
+        return 'O PNCP não respondeu. Ele limita a quantidade de consultas por minuto — '
+             + 'aguarde alguns instantes e recarregue a página.';
+    }
+
+    if (/HTTP 429/.test(texto)) {
+        return 'Limite de consultas do PNCP atingido. Aguarde alguns minutos.';
+    }
+
+    return texto;
+}
+
+function renderResumo(item) {
+    const linhas = [
+        ['Objeto', item.description || item.title],
+        ['Órgão', item.orgao_nome],
+        ['Unidade', item.unidade_nome],
+        ['Município / UF', [item.municipio_nome, item.uf].filter(Boolean).join(' / ')],
+        ['Esfera', item.esfera_nome],
+        ['Poder', item.poder_nome],
+        ['Modalidade', item.modalidade_licitacao_nome],
+        ['Situação', item.situacao_nome],
+        ['Valor estimado', item.valor_total_estimado],
+        ['Valor homologado', item.valor_total_homologado],
+        ['Valor global', item.valor_global],
+        ['Publicação no PNCP', item.data_publicacao_pncp],
+        ['Assinatura', item.data_assinatura],
+        ['Controle PNCP', item.numero_controle_pncp]
+    ].filter(([, valor]) => valor !== null && valor !== undefined && valor !== '');
+
+    const html = linhas.map(([rotulo, valor]) => `
+        <div class="dado">
+            <div class="rotulo">${escapar(rotulo)}</div>
+            <div class="valor">${valorFormatado(String(rotulo), valor)}</div>
+        </div>`).join('');
+
+    document.getElementById('dados').innerHTML = `<div class="dados">${html}</div>`;
+}
+
 /* ---------- carga ---------- */
 
 async function carregar() {
@@ -221,44 +274,58 @@ async function carregar() {
         return;
     }
 
-    const link = PNCP.linkPortal(itemUrl);
-    document.getElementById('linkPortal').href = link;
+    document.getElementById('linkPortal').href = PNCP.linkPortal(itemUrl);
 
-    status.innerHTML = '<div class="aviso"><span class="carregando"></span> Carregando...</div>';
+    // 1. Resumo imediato, vindo da listagem (não depende de rede)
+    const resumo = lerCache(itemUrl);
+    if (resumo) renderResumo(resumo);
 
+    status.innerHTML = '<div class="aviso"><span class="carregando"></span> Buscando os dados completos...</div>';
+
+    // 2. Dados completos
     try {
         const entidade = await PNCP.detalhe(itemUrl);
         renderDados(entidade);
-        status.innerHTML = '';
+        status.innerHTML = resumo
+            ? ''
+            : '<div class="aviso ok">Dados carregados do PNCP.</div>';
     } catch (erro) {
-        status.innerHTML = `<div class="aviso erro">Falha ao carregar os dados: ${escapar(erro.message)}</div>`;
+        status.innerHTML = `<div class="aviso${resumo ? '' : ' erro'}">
+            ${resumo ? 'Exibindo os dados da listagem.' : 'Falha ao carregar os dados.'}
+            ${escapar(mensagemErro(erro))}
+        </div>`;
     }
 
+    // 3. Documentos
     try {
         renderArquivos(await PNCP.arquivos(itemUrl));
     } catch (erro) {
         document.getElementById('arquivos').innerHTML =
-            `<div class="aviso erro">Falha ao listar documentos: ${escapar(erro.message)}</div>`;
+            `<div class="aviso erro">${escapar(mensagemErro(erro))}</div>`;
     }
 
     const tipo = itemUrl.split('/').filter(Boolean)[0];
 
+    // 4. Itens e preços
     if (tipo === 'compras') {
         try {
             renderItens(await PNCP.itens(itemUrl), itemUrl);
         } catch (erro) {
             document.getElementById('itens').innerHTML =
-                `<div class="aviso erro">Falha ao listar itens: ${escapar(erro.message)}</div>`;
+                `<div class="aviso erro">${escapar(mensagemErro(erro))}</div>`;
         }
     } else {
         const bloco = document.getElementById('bloco-itens');
         if (bloco) bloco.style.display = 'none';
     }
 
+    // 5. Termos do contrato
     if (tipo === 'contratos') {
         try {
             renderTermos(await PNCP.termos(itemUrl));
-        } catch (_) { /* opcional */ }
+        } catch (_) {
+            /* opcional */
+        }
     }
 }
 
