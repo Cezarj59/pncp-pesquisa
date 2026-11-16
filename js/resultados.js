@@ -268,11 +268,29 @@ function irPara(pagina) {
 async function carregar() {
     const status = document.getElementById('status');
     const params = estado.params;
-    const termo = params.get('q') || '';
+
+    // A API exige termo OU status. Sem palavra-chave, a busca usa o nome
+    // da modalidade selecionada (padrão: Pregão Eletrônico).
+    const termoInformado = (params.get('q') || '').trim();
+    const modalidadeId = params.get('modalidade') || '6';
+
+    const nomeModalidade = (MODALIDADES.find(m => m[0] === modalidadeId) || [])[1] || '';
+    const termo = termoInformado || nomeModalidade || 'pregão eletrônico';
+
+    const statusApi = {
+        encerradas: 'encerradas',
+        recebendo: 'recebendo_proposta'
+    }[params.get('status')] || null;
+
     const paginas = Math.max(1, Math.min(12, Number(params.get('paginas') || 3)));
 
+    const avisoPadrao = termoInformado
+        ? ''
+        : `<br><span class="mudo">Sem palavra-chave: buscando por
+             "${escapar(termo)}" e filtrando pela modalidade selecionada.</span>`;
+
     status.innerHTML = `<div class="aviso"><span class="carregando"></span>
-        Consultando o PNCP — ${paginas} página(s)...</div>`;
+        Consultando o PNCP — ${paginas} página(s)...${avisoPadrao}</div>`;
 
     const acumulado = [];
     let totalPncp = 0;
@@ -280,7 +298,7 @@ async function carregar() {
     try {
         for (let pagina = 1; pagina <= paginas; pagina++) {
             const dados = await PNCP.buscar({
-                termo, tipo: estado.tipo, pagina, tamPagina: 50
+                termo, tipo: estado.tipo, pagina, tamPagina: 50, status: statusApi
             });
 
             if (!dados) break;
@@ -292,7 +310,7 @@ async function carregar() {
             acumulado.push(...itens);
 
             status.innerHTML = `<div class="aviso"><span class="carregando"></span>
-                Carregando... ${acumulado.length} registros lidos de ${totalPncp}</div>`;
+                Carregando... ${acumulado.length} registros lidos de ${totalPncp}${avisoPadrao}</div>`;
 
             if (pagina < paginas) await new Promise(r => setTimeout(r, 300));
         }
@@ -307,7 +325,8 @@ async function carregar() {
             <strong>${estado.filtrados.length}</strong> registro(s) após os filtros ·
             <strong>${estado.analisados}</strong> analisados ·
             ${totalPncp.toLocaleString('pt-BR')} no PNCP para este termo
-            ${termo ? `("${escapar(termo)}")` : ''}
+            ${termoInformado ? `("${escapar(termo)}")` : `("${escapar(termo)}" — padrão)`}
+            ${avisoPadrao}
         </div>`;
 
         renderizarTabela();

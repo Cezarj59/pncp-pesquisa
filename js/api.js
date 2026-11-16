@@ -74,7 +74,7 @@ const PNCP = (() => {
     }
 
     /** Busca textual por tipo de documento (edital, ata, contrato). */
-    async function buscar({ termo, tipo = 'edital', pagina = 1, tamPagina = 50 }) {
+    async function buscar({ termo, tipo = 'edital', pagina = 1, tamPagina = 50, status = null }) {
         const params = new URLSearchParams({
             q: termo || '',
             tipos_documento: tipo,
@@ -82,6 +82,10 @@ const PNCP = (() => {
             tam_pagina: String(tamPagina),
             ordenacao: '-data'
         });
+
+        // `status` é um filtro real da API: encerradas / recebendo_proposta.
+        // Também é obrigatório quando `q` vem vazio.
+        if (status) params.set('status', status);
 
         return buscarJson(`${BASE_BUSCA}?${params.toString()}`);
     }
