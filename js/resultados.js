@@ -279,7 +279,10 @@ async function carregar() {
 
     const statusApi = {
         encerradas: 'encerradas',
-        recebendo: 'recebendo_proposta'
+        recebendo: 'recebendo_proposta',
+        // Homologadas são um subconjunto das encerradas: pedir só as
+        // encerradas deixa a amostra mais densa para o filtro local.
+        homologadas: 'encerradas'
     }[params.get('status')] || null;
 
     const paginas = Math.max(1, Math.min(12, Number(params.get('paginas') || 3)));
