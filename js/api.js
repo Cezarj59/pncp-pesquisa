@@ -4,6 +4,7 @@ const PNCP = (() => {
 
     const BASE_BUSCA = 'https://pncp.gov.br/api/search/';
     const BASE_API   = 'https://pncp.gov.br/api/pncp/v1';
+    const BASE_CONSULTA = 'https://pncp.gov.br/api/consulta/v1';
     const BASE_APP   = 'https://pncp.gov.br/app';
 
     const TENTATIVAS = 3;
@@ -13,7 +14,27 @@ const PNCP = (() => {
         return new Promise(r => setTimeout(r, ms));
     }
 
-    async function buscarJson(url, tentativas = TENTATIVAS) {
+    /**
+     * O PNCP às vezes move um endpoint e responde 301 com a nova rota
+     * dentro do campo `message`. Aqui a nova rota é extraída e seguida
+     * uma única vez, mantendo o mesmo host.
+     */
+    async function seguirMudancaDeRota(resposta) {
+        try {
+            const corpo = await resposta.clone().json();
+            const achado = String(corpo && corpo.message || '').match(/https?:\/\/[^\s",]+/);
+
+            if (!achado) return null;
+
+            const destino = new URL(achado[0]);
+            return `${destino.origin.replace(/:\d+$/, '')}${destino.pathname}${destino.search}`;
+
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function buscarJson(url, tentativas = TENTATIVAS, podeSegirRota = true) {
         let ultimoErro = null;
 
         for (let i = 0; i < tentativas; i++) {
@@ -21,6 +42,24 @@ const PNCP = (() => {
                 const resposta = await fetch(url, { headers: { 'Accept': 'application/json' } });
 
                 if (resposta.status === 204) return null;
+
+                if (resposta.status === 301 || resposta.status === 302 || resposta.status === 308) {
+                    if (podeSegirRota) {
+                        const novaRota = await seguirMudancaDeRota(resposta);
+                        if (novaRota) {
+                            return buscarJson(novaRota, tentativas, false);
+                        }
+                    }
+
+                    // Segunda tentativa: troca a base antiga pela nova
+                    if (url.includes('/api/pncp/')) {
+                        const alternativa = url.replace('/api/pncp/', '/api/consulta/');
+                        return buscarJson(alternativa, tentativas, false);
+                    }
+
+                    throw new Error('endpoint movido pelo PNCP');
+                }
+
                 if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
 
                 return await resposta.json();
@@ -75,7 +114,13 @@ const PNCP = (() => {
     async function detalhe(itemUrl) {
         const caminho = apiPath(itemUrl);
         if (!caminho) return null;
-        return buscarJson(`${BASE_API}${caminho}`);
+
+        // O detalhe da contratação passou a responder em /api/consulta.
+        try {
+            return await buscarJson(`${BASE_CONSULTA}${caminho}`, 2, false);
+        } catch (_) {
+            return buscarJson(`${BASE_API}${caminho}`);
+        }
     }
 
     async function arquivos(itemUrl) {
