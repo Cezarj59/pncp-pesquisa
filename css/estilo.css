@@ -219,6 +219,37 @@ a.link:hover { text-decoration: underline; }
 
 .paginacao { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
 
+/* ---------- botão pequeno e linha de preços ---------- */
+
+button.mini {
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 4px;
+    background: var(--verde-escuro);
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+button.mini:hover { background: var(--verde); }
+
+tr.linha-precos > td {
+    background: #F7F9F8;
+    border-left: 3px solid var(--verde);
+    padding: 10px 14px;
+}
+
+.precos-lista {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 12px;
+    max-height: 220px;
+    overflow: auto;
+}
+
+.precos-lista li { margin-bottom: 6px; }
+.precos-lista li:last-child { margin-bottom: 0; }
+
 @media (max-width: 640px) {
     main { padding: 12px; }
     th { font-size: 10px; }

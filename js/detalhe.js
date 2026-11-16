@@ -174,10 +174,17 @@ function renderItens(itens, itemUrl) {
             <td class="num">${estimado}</td>
             <td>${situacao}</td>
             <td>${item.temResultado
-                ? `<button class="mini" onclick="verPrecos(this, '${escapar(itemUrl)}', ${Number(item.numeroItem)})">Preços</button>
-                   <div></div>`
+                ? `<button class="mini" onclick="verPrecos(this, '${escapar(itemUrl)}', ${Number(item.numeroItem)})">Preços</button>`
                 : ''}</td>
         </tr>`;
+
+        // Linha oculta logo abaixo do item; os preços aparecem aqui,
+        // sem espremer as colunas da tabela.
+        if (item.temResultado) {
+            html += `<tr class="linha-precos" style="display: none;">
+                <td colspan="6"></td>
+            </tr>`;
+        }
     });
 
     html += '</tbody></table></div>';
@@ -202,24 +209,38 @@ function renderItens(itens, itemUrl) {
 }
 
 async function verPrecos(botao, itemUrl, numeroItem) {
-    const alvo = botao.nextElementSibling;
-    alvo.innerHTML = '<span class="carregando"></span>';
+    const linha = botao.closest('tr') ? botao.closest('tr').nextElementSibling : null;
+    if (!linha) return;
+
+    const celula = linha.firstElementChild;
+
+    // Clicar de novo esconde
+    if (linha.style.display !== 'none') {
+        linha.style.display = 'none';
+        return;
+    }
+
+    linha.style.display = '';
+    botao.disabled = true;
+    celula.innerHTML = '<span class="carregando"></span> Buscando preços...';
 
     try {
         const resultados = await PNCP.resultados(itemUrl, numeroItem);
 
         if (!resultados.length) {
-            alvo.innerHTML = '<span class="mudo">sem fornecedores</span>';
+            celula.innerHTML = '<span class="mudo">Nenhum fornecedor homologado para este item.</span>';
             return;
         }
 
-        alvo.innerHTML = `<ul class="docs">${resultados.map(r => `<li>
+        celula.innerHTML = `<ul class="precos-lista">${resultados.map(r => `<li>
             <strong>${escapar(r.nomeRazaoSocialFornecedor || '')}</strong>
             <br><span class="mudo">${escapar(r.niFornecedor || '')} · ${moeda(r.valorUnitarioHomologado)} · qtd ${escapar(r.quantidadeHomologada ?? '')}</span>
         </li>`).join('')}</ul>`;
 
     } catch (erro) {
-        alvo.innerHTML = `<span class="mudo">falha: ${escapar(erro.message)}</span>`;
+        celula.innerHTML = `<span class="mudo">${escapar(mensagemErro(erro))}</span>`;
+    } finally {
+        botao.disabled = false;
     }
 }
 
