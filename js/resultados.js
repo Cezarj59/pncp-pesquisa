@@ -66,6 +66,7 @@ function aplicarFiltros(itens) {
     const srp = p.get('srp');
     const adesao = p.get('adesao');
     const cancelada = p.get('cancelada');
+    const status = p.get('status');
     const fornecedor = p.get('fornecedor');
     const tipoContrato = p.get('tipoContrato');
     const valorMin = numero(p.get('valorMin'));
@@ -85,6 +86,7 @@ function aplicarFiltros(itens) {
         if (esfera && !contem(item.esfera_nome, esfera)) return false;
         if (poder && !contem(item.poder_nome, poder)) return false;
         if (situacaoOk(situacao, item) === false) return false;
+        if (statusOk(status, item) === false) return false;
 
         if (nomeModalidade && !contem(item.modalidade_licitacao_nome, nomeModalidade)) return false;
 
@@ -122,6 +124,40 @@ function aplicarFiltros(itens) {
 function situacaoOk(situacao, item) {
     if (!situacao) return true;
     return contem(item.situacao_nome, situacao);
+}
+
+/**
+ * Situação da disputa, deduzida das datas de recebimento de propostas.
+ * O PNCP não expõe esse estado como filtro; ele é calculado aqui.
+ */
+function statusOk(status, item) {
+    if (!status) return true;
+
+    if (status === 'homologadas') {
+        return item.tem_resultado === true;
+    }
+
+    const agora = new Date();
+
+    const inicio = item.data_inicio_recebimento_propostas
+        ? new Date(item.data_inicio_recebimento_propostas) : null;
+
+    const fim = item.data_fim_recebimento_propostas
+        ? new Date(item.data_fim_recebimento_propostas) : null;
+
+    if (status === 'encerradas') {
+        return fim !== null
+            && !Number.isNaN(fim.getTime())
+            && fim < agora;
+    }
+
+    if (status === 'recebendo') {
+        if (!inicio || !fim) return false;
+        if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) return false;
+        return agora >= inicio && agora <= fim;
+    }
+
+    return true;
 }
 
 /* ---------- render ---------- */

@@ -22,7 +22,20 @@ const SITUACOES = [
     ['Revogada','Revogada'], ['Anulada','Anulada'], ['Suspensa','Suspensa']
 ];
 
-/* Cada filtro: id, rótulo, tipo, opções, destaque, largura */
+/* Situação da disputa — deduzida das datas de recebimento de propostas */
+const STATUS_DISPUTA = [
+    ['','Todas'],
+    ['recebendo','Recebendo proposta'],
+    ['encerradas','Encerradas'],
+    ['homologadas','Com resultado homologado']
+];
+
+const PAGINAS_OPCOES = [
+    ['1','1 página (50 registros)'], ['2','2 páginas (100)'], ['3','3 páginas (150)'],
+    ['5','5 páginas (250)'], ['8','8 páginas (400)'], ['12','12 páginas (600)']
+];
+
+/* Cada filtro: id, rótulo, tipo, opções, destaque, padrão */
 const FILTROS = {
 
     edital: [
@@ -36,15 +49,16 @@ const FILTROS = {
         { id: 'poder', rotulo: 'Poder', tipo: 'select',
           opcoes: [['','Todos'],['Executivo','Executivo'],['Legislativo','Legislativo'],['Judiciário','Judiciário']] },
         { id: 'modalidade', rotulo: 'Modalidade', tipo: 'select', opcoes: [['','Todas'], ...MODALIDADES] },
-        { id: 'situacao', rotulo: 'Situação', tipo: 'select', opcoes: SITUACOES },
+        { id: 'status', rotulo: 'Situação da disputa', tipo: 'select', opcoes: STATUS_DISPUTA },
+        { id: 'situacao', rotulo: 'Situação no PNCP', tipo: 'select', opcoes: SITUACOES },
         { id: 'srp', rotulo: 'Registro de preços', tipo: 'select',
           opcoes: [['','Todos'],['sim','Sim'],['nao','Não']] },
-        { id: 'dias', rotulo: 'Período de publicação', tipo: 'select', opcoes: PERIODOS },
+        { id: 'dias', rotulo: 'Período de publicação', tipo: 'select',
+          opcoes: PERIODOS, padrao: '365' },
         { id: 'valorMin', rotulo: 'Valor estimado (mín.)', tipo: 'numero' },
         { id: 'valorMax', rotulo: 'Valor estimado (máx.)', tipo: 'numero' },
         { id: 'paginas', rotulo: 'Profundidade da busca', tipo: 'select',
-          opcoes: [['1','1 página (50 registros)'],['2','2 páginas (100)'],['3','3 páginas (150)'],
-                   ['5','5 páginas (250)'],['8','8 páginas (400)'],['12','12 páginas (600)']] }
+          opcoes: PAGINAS_OPCOES, padrao: '5' }
     ],
 
     ata: [
@@ -57,10 +71,10 @@ const FILTROS = {
           opcoes: [['','Todas'],['sim','Sim'],['nao','Não']] },
         { id: 'cancelada', rotulo: 'Cancelada', tipo: 'select',
           opcoes: [['','Todas'],['nao','Não'],['sim','Sim']] },
-        { id: 'dias', rotulo: 'Período de assinatura', tipo: 'select', opcoes: PERIODOS },
+        { id: 'dias', rotulo: 'Período de assinatura', tipo: 'select',
+          opcoes: PERIODOS, padrao: '365' },
         { id: 'paginas', rotulo: 'Profundidade da busca', tipo: 'select',
-          opcoes: [['1','1 página (50 registros)'],['2','2 páginas (100)'],['3','3 páginas (150)'],
-                   ['5','5 páginas (250)'],['8','8 páginas (400)'],['12','12 páginas (600)']] }
+          opcoes: PAGINAS_OPCOES, padrao: '5' }
     ],
 
     contrato: [
@@ -71,12 +85,12 @@ const FILTROS = {
         { id: 'orgao', rotulo: 'Órgão / Entidade', tipo: 'texto' },
         { id: 'fornecedor', rotulo: 'Fornecedor', tipo: 'texto' },
         { id: 'tipoContrato', rotulo: 'Tipo de contrato', tipo: 'texto' },
-        { id: 'dias', rotulo: 'Período de assinatura', tipo: 'select', opcoes: PERIODOS },
+        { id: 'dias', rotulo: 'Período de assinatura', tipo: 'select',
+          opcoes: PERIODOS, padrao: '365' },
         { id: 'valorMin', rotulo: 'Valor global (mín.)', tipo: 'numero' },
         { id: 'valorMax', rotulo: 'Valor global (máx.)', tipo: 'numero' },
         { id: 'paginas', rotulo: 'Profundidade da busca', tipo: 'select',
-          opcoes: [['1','1 página (50 registros)'],['2','2 páginas (100)'],['3','3 páginas (150)'],
-                   ['5','5 páginas (250)'],['8','8 páginas (400)'],['12','12 páginas (600)']] }
+          opcoes: PAGINAS_OPCOES, padrao: '5' }
     ]
 };
 
@@ -88,7 +102,10 @@ function criarCampoHtml(filtro) {
 
     if (filtro.tipo === 'select') {
         const opcoes = filtro.opcoes
-            .map(([valor, texto]) => `<option value="${valor}">${texto}</option>`)
+            .map(([valor, texto]) => {
+                const marcado = String(filtro.padrao ?? '') === String(valor) ? ' selected' : '';
+                return `<option value="${valor}"${marcado}>${texto}</option>`;
+            })
             .join('');
         controle = `<select id="${id}">${opcoes}</select>`;
 
