@@ -120,10 +120,8 @@ function criarCampoHtml(filtro) {
         controle = `<select id="${id}">${opcoes}</select>`;
 
     } else if (filtro.tipo === 'uf') {
-        const opcoes = ['<option value="">Todas</option>']
-            .concat(UFS.map(uf => `<option value="${uf}">${uf}</option>`))
-            .join('');
-        controle = `<select id="${id}">${opcoes}</select>`;
+        const opcoes = UFS.map(uf => `<option value="${uf}">${uf}</option>`).join('');
+        controle = `<select id="${id}" multiple size="5">${opcoes}</select>`;
 
     } else if (filtro.tipo === 'numero') {
         controle = `<input type="number" id="${id}" min="0" step="0.01" placeholder="0,00">`;
@@ -135,7 +133,11 @@ function criarCampoHtml(filtro) {
         controle = `<input type="text" id="${id}" placeholder="${placeholder}">`;
     }
 
-    const dica = filtro.dica ? `<span class="mudo">${filtro.dica}</span>` : '';
+    const dica = filtro.dica
+        ? `<span class="mudo">${filtro.dica}</span>`
+        : (filtro.tipo === 'uf'
+            ? '<span class="mudo">Segure Ctrl para escolher mais de um estado.</span>'
+            : '');
 
     return `<div class="${classe}">
         <label for="${id}">${filtro.rotulo}</label>
@@ -175,7 +177,17 @@ function pesquisar(tipo) {
         const elemento = document.getElementById(`f_${filtro.id}`);
         if (!elemento) return;
 
-        const valor = elemento.value.trim();
+        let valor;
+
+        if (elemento.multiple) {
+            valor = Array.from(elemento.selectedOptions)
+                .map(opcao => opcao.value)
+                .filter(Boolean)
+                .join(',');
+        } else {
+            valor = elemento.value.trim();
+        }
+
         if (valor !== '') params.set(filtro.id, valor);
     });
 

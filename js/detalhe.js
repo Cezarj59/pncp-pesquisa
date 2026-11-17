@@ -190,19 +190,15 @@ function renderItens(itens, itemUrl) {
     html += '</tbody></table></div>';
 
     if (comResultado === 0) {
-        html += `<div class="aviso" style="margin-top:14px">
-            <strong>Nenhum item desta contratação tem preço homologado publicado.</strong><br>
-            O botão <em>Preços</em> só aparece em itens já julgados. Nesta contratação o
-            resultado ainda não foi divulgado no PNCP.
-        </div>`;
+        html += `<p class="mudo" style="margin-top: 12px">
+            Esta contratação ainda não teve o resultado divulgado.
+        </p>`;
     }
 
     if (itens.some(i => i.orcamentoSigiloso === true)) {
-        html += `<div class="aviso" style="margin-top:10px">
-            Esta contratação tem <strong>orçamento sigiloso</strong>, permitido pelo
-            art. 24 da Lei 14.133/2021. Por isso os valores estimados aparecem como
-            zero ou ocultos — é a informação publicada, não uma falha de leitura.
-        </div>`;
+        html += `<p class="mudo" style="margin-top: 8px">
+            Os valores estimados desta contratação não foram divulgados.
+        </p>`;
     }
 
     area.innerHTML = html;
@@ -271,23 +267,15 @@ function lerCache(itemUrl) {
 function mensagemErro(erro) {
     const texto = String((erro && erro.message) || erro || '');
 
-    if (/failed to fetch|networkerror|load failed|network request failed/i.test(texto)) {
-        return 'O PNCP não respondeu. Ele limita a quantidade de consultas por minuto — '
-             + 'aguarde alguns instantes e recarregue a página.';
+    if (/HTTP (404|400)/.test(texto)) {
+        return 'Os detalhes desta contratação ainda não estão disponíveis no PNCP.';
     }
 
-    if (/HTTP 429/.test(texto)) {
-        return 'Limite de consultas do PNCP atingido. Aguarde alguns minutos.';
+    if (/HTTP 429/.test(texto) || /failed to fetch|networkerror|load failed|network request failed/i.test(texto)) {
+        return 'O PNCP não respondeu agora. Tente novamente em alguns instantes.';
     }
 
-    if (/HTTP (400|404)/.test(texto)) {
-        return 'O PNCP não devolveu os dados completos desta contratação. Isso costuma '
-             + 'acontecer nas primeiras horas após a publicação: o registro já aparece na '
-             + 'listagem e nos documentos, mas o detalhe ainda não foi indexado. '
-             + 'Os documentos, quando existirem, aparecem abaixo.';
-    }
-
-    return texto;
+    return 'Não foi possível carregar as informações agora.';
 }
 
 function renderResumo(item) {
@@ -342,14 +330,9 @@ async function carregar() {
     try {
         const entidade = await PNCP.detalhe(itemUrl);
         renderDados(entidade);
-        status.innerHTML = resumo
-            ? ''
-            : '<div class="aviso ok">Dados carregados do PNCP.</div>';
+        status.innerHTML = '';
     } catch (erro) {
-        status.innerHTML = `<div class="aviso${resumo ? '' : ' erro'}">
-            ${resumo ? 'Exibindo os dados da listagem.' : 'Falha ao carregar os dados.'}
-            ${escapar(mensagemErro(erro))}
-        </div>`;
+        status.innerHTML = `<div class="aviso${resumo ? '' : ' erro'}">${escapar(mensagemErro(erro))}</div>`;
     }
 
     // 3. Documentos

@@ -60,7 +60,10 @@ function aplicarFiltros(itens) {
     const p = estado.params;
     const tipo = estado.tipo;
 
-    const uf = p.get('uf');
+    const ufs = (p.get('uf') || '')
+        .split(',')
+        .map(uf => uf.trim().toUpperCase())
+        .filter(Boolean);
     const municipio = p.get('municipio');
     const orgao = p.get('orgao');
     const esfera = p.get('esfera');
@@ -85,7 +88,7 @@ function aplicarFiltros(itens) {
         : '';
 
     return itens.filter(item => {
-        if (uf && String(item.uf || '').toUpperCase() !== uf) return false;
+        if (ufs.length && !ufs.includes(String(item.uf || '').toUpperCase())) return false;
         if (municipio && !contem(item.municipio_nome, municipio)) return false;
         if (orgao && !contem(item.orgao_nome, orgao) && !contem(item.orgao_cnpj, orgao)) return false;
         if (esfera && !contem(item.esfera_nome, esfera)) return false;
@@ -273,7 +276,6 @@ async function carregar() {
     // da modalidade selecionada (padrão: Pregão Eletrônico).
     const termoInformado = (params.get('q') || '').trim();
     const modalidadeId = params.get('modalidade') || '6';
-
     const nomeModalidade = (MODALIDADES.find(m => m[0] === modalidadeId) || [])[1] || '';
     const termo = termoInformado || nomeModalidade || 'pregão eletrônico';
 
@@ -287,16 +289,9 @@ async function carregar() {
 
     const paginas = Math.max(1, Math.min(12, Number(params.get('paginas') || 3)));
 
-    const avisoPadrao = termoInformado
-        ? ''
-        : `<br><span class="mudo">Sem palavra-chave: buscando por
-             "${escapar(termo)}" e filtrando pela modalidade selecionada.</span>`;
-
-    status.innerHTML = `<div class="aviso"><span class="carregando"></span>
-        Consultando o PNCP — ${paginas} página(s)...${avisoPadrao}</div>`;
+    status.innerHTML = '<div class="aviso"><span class="carregando"></span> Buscando no PNCP...</div>';
 
     const acumulado = [];
-    let totalPncp = 0;
 
     try {
         for (let pagina = 1; pagina <= paginas; pagina++) {
@@ -306,38 +301,35 @@ async function carregar() {
 
             if (!dados) break;
 
-            totalPncp = dados.total || totalPncp;
             const itens = dados.items || [];
             if (!itens.length) break;
 
             acumulado.push(...itens);
-
-            status.innerHTML = `<div class="aviso"><span class="carregando"></span>
-                Carregando... ${acumulado.length} registros lidos de ${totalPncp}${avisoPadrao}</div>`;
 
             if (pagina < paginas) await new Promise(r => setTimeout(r, 300));
         }
 
         estado.todos = acumulado;
         estado.analisados = acumulado.length;
-        estado.totalPncp = totalPncp;
         estado.filtrados = aplicarFiltros(acumulado);
         estado.pagina = 1;
 
-        status.innerHTML = `<div class="aviso ok">
-            <strong>${estado.filtrados.length}</strong> registro(s) após os filtros ·
-            <strong>${estado.analisados}</strong> analisados ·
-            ${totalPncp.toLocaleString('pt-BR')} no PNCP para este termo
-            ${termoInformado ? `("${escapar(termo)}")` : `("${escapar(termo)}" — padrão)`}
-            ${avisoPadrao}
-        </div>`;
+        const total = estado.filtrados.length;
+
+        status.innerHTML = total
+            ? `<div class="aviso ok">${total === 1
+                ? '1 resultado encontrado.'
+                : `${total} resultados encontrados.`}</div>`
+            : `<div class="aviso">Nenhum resultado encontrado.
+               Tente outra palavra-chave, aumente o período ou escolha
+               "Todas" em Situação da disputa.</div>`;
 
         renderizarTabela();
 
     } catch (erro) {
         status.innerHTML = `<div class="aviso erro">
-            <strong>Falha na consulta.</strong> ${escapar(erro.message)}<br>
-            O PNCP pode estar limitando requisições. Aguarde alguns segundos e tente novamente.
+            Não foi possível concluir a busca agora.
+            Verifique sua conexão e tente novamente em alguns instantes.
         </div>`;
     }
 }

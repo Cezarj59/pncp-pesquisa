@@ -116,8 +116,50 @@ const PNCP = (() => {
         return null;
     }
 
+    /**
+     * Monta o endereço público no portal do PNCP.
+     * A rota de contratação no portal é /app/editais/, e não /app/compras/.
+     */
     function linkPortal(itemUrl) {
-        return itemUrl ? `${BASE_APP}${itemUrl}` : null;
+        if (!itemUrl) return null;
+
+        const partes = itemUrl.split('/').filter(Boolean);
+        const tipo = partes[0];
+        const resto = partes.slice(1).join('/');
+
+        if (tipo === 'compras') return `${BASE_APP}/editais/${resto}`;
+        if (tipo === 'atas') return `${BASE_APP}/atas/${resto}`;
+        if (tipo === 'contratos') return `${BASE_APP}/contratos/${resto}`;
+
+        return `${BASE_APP}${itemUrl}`;
+    }
+
+    /**
+     * Percorre todas as páginas de um endpoint de lista.
+     * Antes vinha só a primeira página, limitada a 50 registros.
+     */
+    async function listarTudo(caminho, { maxPaginas = 20, tamPagina = 50 } = {}) {
+        const acumulado = [];
+
+        for (let pagina = 1; pagina <= maxPaginas; pagina++) {
+            const dados = await buscarJson(
+                `${BASE_API}${caminho}?pagina=${pagina}&tamanhoPagina=${tamPagina}`
+            );
+
+            if (!dados) break;
+
+            const lista = Array.isArray(dados)
+                ? dados
+                : (dados.data || dados.resultado || []);
+
+            acumulado.push(...lista);
+
+            if (lista.length < tamPagina) break;
+
+            await dormir(150);
+        }
+
+        return acumulado;
     }
 
     async function detalhe(itemUrl) {
@@ -135,18 +177,14 @@ const PNCP = (() => {
     async function arquivos(itemUrl) {
         const caminho = apiPath(itemUrl);
         if (!caminho) return [];
-        const dados = await buscarJson(`${BASE_API}${caminho}/arquivos?pagina=1&tamanhoPagina=50`);
-        if (!dados) return [];
-        return Array.isArray(dados) ? dados : (dados.data || dados.resultado || []);
+        return listarTudo(`${caminho}/arquivos`);
     }
 
     /** Itens de uma contratação (só existe para /compras). */
     async function itens(itemUrl) {
         const caminho = apiPath(itemUrl);
         if (!caminho) return [];
-        const dados = await buscarJson(`${BASE_API}${caminho}/itens?pagina=1&tamanhoPagina=50`);
-        if (!dados) return [];
-        return Array.isArray(dados) ? dados : (dados.data || dados.resultado || []);
+        return listarTudo(`${caminho}/itens`);
     }
 
     /** Preços homologados de um item. */
@@ -162,17 +200,13 @@ const PNCP = (() => {
     async function termos(itemUrl) {
         const caminho = apiPath(itemUrl);
         if (!caminho) return [];
-        const dados = await buscarJson(`${BASE_API}${caminho}/termos?pagina=1&tamanhoPagina=50`);
-        if (!dados) return [];
-        return Array.isArray(dados) ? dados : (dados.data || dados.resultado || []);
+        return listarTudo(`${caminho}/termos`);
     }
 
     async function empenhos(itemUrl) {
         const caminho = apiPath(itemUrl);
         if (!caminho) return [];
-        const dados = await buscarJson(`${BASE_API}${caminho}/empenhos?pagina=1&tamanhoPagina=50`);
-        if (!dados) return [];
-        return Array.isArray(dados) ? dados : (dados.data || dados.resultado || []);
+        return listarTudo(`${caminho}/empenhos`);
     }
 
     return {
