@@ -136,6 +136,7 @@ pncp-demo/
 │   ├── relatorio.js          geração do CSV
 │   ├── relatorio-pesquisa.js documento imprimível de pesquisa de preços
 │   ├── resultados.js         orquestra busca, filtros, ordenação e listagem
+│   ├── topo.js               botão voltar ao topo
 │   ├── coleta-pagina.js       página da coleta: lista, resumo, CSV e relatório
 │   └── detalhe.js            dados, documentos, itens, preços e coleta
 └── tests/
@@ -145,7 +146,8 @@ pncp-demo/
     ├── itens.test.js
     ├── coleta.test.js
     ├── coleta-pagina.test.js
-    └── relatorio.test.js
+    ├── relatorio.test.js
+    └── topo.test.js
 ```
 
 ## Testes
@@ -160,13 +162,14 @@ node tests/itens.test.js
 node tests/coleta.test.js
 node tests/coleta-pagina.test.js
 node tests/relatorio.test.js
+node tests/topo.test.js
 ```
 
 Cobrem as decisões do motor (alvo, teto, falha parcial, cache, cancelamento,
 página inicial), a conversão de `item_url` em endpoint e link do portal, o
 comportamento da página de detalhe quando o PNCP recusa (mensagem clara, nova
 tentativa e cache), a tabela de itens com os dois preços, o armazenamento da
-coleta, os cálculos do relatório e a página da coleta.
+coleta, os cálculos do relatório, a página da coleta e o botão voltar ao topo.
 
 ## Coletas de preços
 

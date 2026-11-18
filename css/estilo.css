@@ -413,3 +413,48 @@ table.precos-tabela td { padding: 6px 8px; }
     th { font-size: 10px; }
     td, th { padding: 8px 6px; }
 }
+
+/* ---------- voltar ao topo ---------- */
+
+.botao-topo {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--verde);
+    background: #fff;
+    color: var(--verde-escuro);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .16);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity .18s ease, transform .18s ease, background .18s ease;
+    z-index: 80;
+}
+
+.botao-topo.visivel {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.botao-topo:hover {
+    background: var(--verde);
+    color: #fff;
+}
+
+.botao-topo:focus-visible {
+    outline: 3px solid rgba(0, 176, 80, .35);
+    outline-offset: 2px;
+}
+
+@media print {
+    .botao-topo { display: none; }
+}
