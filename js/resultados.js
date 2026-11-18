@@ -13,8 +13,12 @@ let estado = {
     ordenacao: 'data',
     proximaPagina: 1,
     parouPor: 'inicio',
-    completou: true
+    completou: true,
+    itensPagina: []
 };
+
+// Registros marcados pelo usuário (por item_url). Sobrevive à paginação.
+const selecionados = new Set();
 
 let controladorBusca = null;
 
@@ -257,7 +261,9 @@ function renderizarTabela() {
     const area = document.getElementById('tabela');
 
     if (!estado.filtrados.length) {
+        estado.itensPagina = [];
         area.innerHTML = '<p class="mudo">Nenhum resultado para exibir.</p>';
+        atualizarSelecao();
         return;
     }
 
@@ -265,13 +271,23 @@ function renderizarTabela() {
     const itens = estado.filtrados.slice(inicio, inicio + POR_PAGINA);
     const colunas = COLUNAS[estado.tipo];
 
-    let html = `<div class="tabela-wrap"><table><thead><tr>${
-        colunas.map(c => `<th scope="col">${c}</th>`).join('')
-    }</tr></thead><tbody>`;
+    estado.itensPagina = itens.map(item => item.item_url || '');
+
+    const todosMarcados = itens.length > 0
+        && itens.every(item => selecionados.has(item.item_url));
+
+    let html = `<div class="tabela-wrap"><table><thead><tr>
+        <th scope="col" style="width: 30px">
+            <input type="checkbox" id="selecionar-pagina"
+                   title="Selecionar todos desta página" ${todosMarcados ? 'checked' : ''}>
+        </th>
+        ${colunas.map(c => `<th scope="col">${c}</th>`).join('')}
+    </tr></thead><tbody>`;
 
     itens.forEach(item => {
         const link = `detalhe.html?u=${encodeURIComponent(item.item_url || '')}`;
         const acao = `<td><a class="link" href="${link}">Detalhes →</a></td>`;
+        const marcado = selecionados.has(item.item_url) ? 'checked' : '';
 
         // Guarda o registro para a página de detalhe exibir ao menos o
         // resumo, caso a API recuse a consulta.
@@ -279,7 +295,12 @@ function renderizarTabela() {
             sessionStorage.setItem(`pncp:${item.item_url || ''}`, JSON.stringify(item));
         } catch (_) { /* armazenamento indisponível */ }
 
-        html += `<tr>${celulas(estado.tipo, item).join('')}${acao}</tr>`;
+        const caixa = `<td class="centro">
+            <input type="checkbox" data-selecionar="1"
+                   data-url="${escapar(item.item_url)}" ${marcado}>
+        </td>`;
+
+        html += `<tr>${caixa}${celulas(estado.tipo, item).join('')}${acao}</tr>`;
     });
 
     html += '</tbody></table></div>';
@@ -293,6 +314,42 @@ function renderizarTabela() {
     </div>`;
 
     area.innerHTML = html;
+    atualizarSelecao();
+}
+
+/* ---------- seleção ---------- */
+
+function itensDaSelecao() {
+    if (!selecionados.size) return [];
+    return estado.filtrados.filter(item => selecionados.has(item.item_url));
+}
+
+function atualizarSelecao() {
+    const contador = document.getElementById('contador-selecao');
+    const botaoRelatorio = document.getElementById('btnRelatorio');
+    const botaoCsv = document.getElementById('btnExportar');
+
+    const total = selecionados.size;
+
+    if (contador) {
+        contador.textContent = total
+            ? `${total} selecionado${total > 1 ? 's' : ''}`
+            : 'Marque os registros que vão para o relatório';
+    }
+
+    if (botaoRelatorio) {
+        botaoRelatorio.disabled = total === 0;
+        botaoRelatorio.textContent = total
+            ? `Gerar relatório (${total})`
+            : 'Gerar relatório';
+    }
+
+    if (botaoCsv) {
+        botaoCsv.textContent = total ? `Exportar CSV (${total})` : 'Exportar CSV';
+        botaoCsv.title = total
+            ? 'Exporta os registros selecionados'
+            : 'Exporta todos os resultados filtrados';
+    }
 }
 
 function irPara(pagina) {
@@ -358,10 +415,12 @@ function linhaCsv(tipo, item) {
 }
 
 function exportarCsv() {
-    if (!estado.filtrados.length) return;
+    // Com seleção, exporta só o que foi marcado; sem seleção, exporta tudo.
+    const base = selecionados.size ? itensDaSelecao() : estado.filtrados;
+    if (!base.length) return;
 
     const tipo = estado.tipo;
-    const linhas = estado.filtrados.map(item => linhaCsv(tipo, item));
+    const linhas = base.map(item => linhaCsv(tipo, item));
 
     Relatorio.baixarCsv(
         Relatorio.nomeArquivo(tipo, estado.params.get('q')),
@@ -421,9 +480,10 @@ function descreverFiltros() {
 }
 
 function abrirRelatorio() {
-    if (!estado.filtrados.length) return;
+    const base = itensDaSelecao();
+    if (!base.length) return;
 
-    const itens = estado.filtrados.map(item => ({
+    const itens = base.map(item => ({
         objeto: item.description || item.title || '',
         orgao: item.orgao_nome || '',
         municipio: item.municipio_nome || '',
@@ -440,6 +500,8 @@ function abrirRelatorio() {
         tipo: estado.tipo,
         termo: (estado.params.get('q') || '').trim(),
         filtros: descreverFiltros(),
+        encontrados: estado.filtrados.length,
+        selecionados: itens.length,
         itens
     };
 
@@ -581,6 +643,9 @@ async function carregar() {
         estado.filtrados = aplicarOrdenacao(aplicarFiltros(resultado.itens));
         estado.pagina = 1;
 
+        // Nova busca: a seleção anterior não vale mais
+        selecionados.clear();
+
         status.innerHTML = mensagemResultado(
             resultado.itens.length, estado.filtrados.length, resultado.completou);
 
@@ -701,6 +766,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const buscarMais = document.getElementById('btnBuscarMais');
     if (buscarMais) buscarMais.addEventListener('click', continuarBusca);
+
+    // Seleção de registros: delegada, porque a tabela é redesenhada
+    const tabela = document.getElementById('tabela');
+    if (tabela) {
+        tabela.addEventListener('change', evento => {
+            const alvo = evento.target;
+
+            if (alvo.id === 'selecionar-pagina') {
+                const marcar = alvo.checked;
+
+                (estado.itensPagina || []).forEach(url => {
+                    if (marcar) selecionados.add(url);
+                    else selecionados.delete(url);
+                });
+
+                renderizarTabela();
+                return;
+            }
+
+            if (alvo.dataset && alvo.dataset.selecionar) {
+                const url = alvo.dataset.url;
+
+                if (alvo.checked) selecionados.add(url);
+                else selecionados.delete(url);
+
+                atualizarSelecao();
+            }
+        });
+    }
 
     // Abandona a busca em andamento ao sair da página
     window.addEventListener('pagehide', () => {

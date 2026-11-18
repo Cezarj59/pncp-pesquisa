@@ -101,6 +101,9 @@ const RelatorioPesquisa = (() => {
                     <tr><th>Tipo de consulta</th><td>${escapar(ROTULO_TIPO[dados.tipo] || dados.tipo)}</td></tr>
                     <tr><th>Termo pesquisado</th><td>${escapar(dados.termo) || '(não informado)'}</td></tr>
                     <tr><th>Data e hora da consulta</th><td>${dataHora(dados.geradoEm)}</td></tr>
+                    <tr><th>Registros selecionados</th><td>${dados.selecionados ?? dados.itens.length}${
+                        dados.encontrados ? ` de ${dados.encontrados} encontrados` : ''
+                    }</td></tr>
                     <tr><th>Fonte</th><td>pncp.gov.br — dados públicos</td></tr>
                 </table>
             </section>

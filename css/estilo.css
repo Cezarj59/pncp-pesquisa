@@ -307,6 +307,19 @@ a.link:hover { text-decoration: underline; }
 
 .paginacao { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
 
+/* ---------- seleção de registros ---------- */
+
+.tabela-wrap input[type=checkbox] {
+    width: auto;
+    margin: 0;
+    accent-color: var(--verde);
+    cursor: pointer;
+}
+
+#contador-selecao { font-size: 12px; }
+
+button:disabled { opacity: .5; cursor: not-allowed; }
+
 /* ---------- botão pequeno e linha de preços ---------- */
 
 button.mini {
