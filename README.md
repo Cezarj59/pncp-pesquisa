@@ -163,8 +163,9 @@ Na tela de resultados, **marque os registros** que vão compor a pesquisa — a
 caixa no cabeçalho seleciona a página inteira. A seleção sobrevive à navegação
 entre páginas.
 
-Com pelo menos um registro marcado, **Gerar relatório** abre um documento
-pronto para impressão ou para salvar em PDF, contendo:
+A cesta exige **no mínimo 3 registros**. Com 1 ou 2 marcados, os botões ficam
+bloqueados e o sistema informa quantos faltam. A partir de 3, **Gerar relatório**
+abre um documento pronto para impressão ou para salvar em PDF, contendo:
 
 1. identificação da consulta (tipo, termo, data e hora, quantos selecionados de quantos encontrados);
 2. os filtros utilizados;
@@ -178,8 +179,8 @@ O documento deixa explícito que os registros correspondem ao que o PNCP
 retornou no momento da consulta, e não à totalidade das contratações do
 período — informação necessária quando o relatório vai ao processo.
 
-**Exportar CSV** segue a mesma regra: com seleção, exporta os marcados; sem
-seleção, exporta todos os resultados filtrados.
+**Exportar CSV** segue a mesma regra: com seleção, exige os 3 registros e
+exporta os marcados; sem seleção, exporta todos os resultados filtrados.
 
 ## Verificação automática da API
 

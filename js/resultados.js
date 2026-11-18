@@ -319,6 +319,9 @@ function renderizarTabela() {
 
 /* ---------- seleção ---------- */
 
+// Mínimo de preços para compor a cesta de pesquisa
+const MINIMO_CESTA = 3;
+
 function itensDaSelecao() {
     if (!selecionados.size) return [];
     return estado.filtrados.filter(item => selecionados.has(item.item_url));
@@ -331,6 +334,7 @@ function atualizarSelecao() {
     const avisoCesta = document.getElementById('aviso-cesta');
 
     const total = selecionados.size;
+    const selecaoIncompleta = total > 0 && total < MINIMO_CESTA;
 
     if (contador) {
         contador.textContent = total
@@ -338,24 +342,23 @@ function atualizarSelecao() {
             : 'Marque os registros que vão para o relatório';
     }
 
-    // Aviso quando a cesta tem menos de 3 preços. Não bloqueia: orienta.
     if (avisoCesta) {
-        const insuficiente = total > 0 && total < 3;
-
-        avisoCesta.style.display = insuficiente ? '' : 'none';
-        avisoCesta.textContent = insuficiente
-            ? 'Menos de 3 preços — a maioria dos processos exige ao menos 3.'
+        avisoCesta.style.display = selecaoIncompleta ? '' : 'none';
+        avisoCesta.textContent = selecaoIncompleta
+            ? `Faltam ${MINIMO_CESTA - total} — a pesquisa exige pelo menos ${MINIMO_CESTA} preços.`
             : '';
     }
 
     if (botaoRelatorio) {
-        botaoRelatorio.disabled = total === 0;
+        botaoRelatorio.disabled = total < MINIMO_CESTA;
         botaoRelatorio.textContent = total
             ? `Gerar relatório (${total})`
             : 'Gerar relatório';
     }
 
     if (botaoCsv) {
+        // Sem seleção, exporta tudo. Com seleção parcial, exige o mínimo.
+        botaoCsv.disabled = selecaoIncompleta;
         botaoCsv.textContent = total ? `Exportar CSV (${total})` : 'Exportar CSV';
         botaoCsv.title = total
             ? 'Exporta os registros selecionados'
@@ -426,6 +429,9 @@ function linhaCsv(tipo, item) {
 }
 
 function exportarCsv() {
+    // Com seleção parcial, exige o mínimo da cesta
+    if (selecionados.size && selecionados.size < MINIMO_CESTA) return;
+
     // Com seleção, exporta só o que foi marcado; sem seleção, exporta tudo.
     const base = selecionados.size ? itensDaSelecao() : estado.filtrados;
     if (!base.length) return;
@@ -491,6 +497,8 @@ function descreverFiltros() {
 }
 
 function abrirRelatorio() {
+    if (selecionados.size < MINIMO_CESTA) return;
+
     const base = itensDaSelecao();
     if (!base.length) return;
 

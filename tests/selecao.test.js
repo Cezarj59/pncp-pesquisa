@@ -75,34 +75,38 @@ __atualizar();
 checar('relatório começa desabilitado', el('btnRelatorio').disabled === true);
 checar('dica no contador', el('contador-selecao').textContent.includes('Marque'));
 
-// --- um selecionado ---
+// --- um selecionado: mínimo não atingido ---
 __sel.add('/compras/1/2026/1');
 __atualizar();
 checar('contador mostra 1', el('contador-selecao').textContent === '1 selecionado',
     el('contador-selecao').textContent);
-checar('relatório habilitado', el('btnRelatorio').disabled === false);
+checar('relatório segue bloqueado com 1', el('btnRelatorio').disabled === true);
+checar('CSV bloqueado com seleção parcial', el('btnExportar').disabled === true);
 checar('rótulo com contagem', el('btnRelatorio').textContent === 'Gerar relatório (1)',
     el('btnRelatorio').textContent);
-checar('CSV também segue a seleção', el('btnExportar').textContent === 'Exportar CSV (1)');
 checar('seleção devolve 1 registro', __daSelecao().length === 1);
 checar('registro certo', __daSelecao()[0].description === 'Merenda');
 
-// --- aviso de cesta com menos de 3 ---
+// --- aviso de cesta incompleta ---
 checar('avisa com 1 selecionado', el('aviso-cesta').style.display !== 'none');
-checar('aviso cita a exigência de 3', el('aviso-cesta').textContent.includes('3'),
+checar('aviso diz quanto falta', el('aviso-cesta').textContent.includes('Faltam 2'),
     el('aviso-cesta').textContent);
 
-// --- dois selecionados, plural ---
+// --- dois selecionados ---
 __sel.add('/compras/2/2026/2');
 __atualizar();
 checar('plural correto', el('contador-selecao').textContent === '2 selecionados',
     el('contador-selecao').textContent);
-checar('aviso continua com 2', el('aviso-cesta').style.display !== 'none');
+checar('aviso agora pede 1', el('aviso-cesta').textContent.includes('Faltam 1'),
+    el('aviso-cesta').textContent);
+checar('ainda bloqueado com 2', el('btnRelatorio').disabled === true);
 
-// --- três selecionados: aviso desaparece ---
+// --- três selecionados: libera ---
 __sel.add('/compras/3/2026/3');
 __atualizar();
 checar('aviso some com 3', el('aviso-cesta').style.display === 'none');
+checar('relatório liberado com 3', el('btnRelatorio').disabled === false);
+checar('CSV liberado com 3', el('btnExportar').disabled === false);
 checar('contagem com 3', el('btnRelatorio').textContent === 'Gerar relatório (3)',
     el('btnRelatorio').textContent);
 
@@ -112,6 +116,7 @@ __atualizar();
 checar('limpar volta a desabilitar', el('btnRelatorio').disabled === true);
 checar('limpar zera a seleção', __daSelecao().length === 0);
 checar('limpar esconde o aviso', el('aviso-cesta').style.display === 'none');
+checar('CSV sem seleção exporta tudo', el('btnExportar').disabled === false);
 checar('CSV volta ao rótulo simples', el('btnExportar').textContent === 'Exportar CSV');
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo passou');
