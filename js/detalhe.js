@@ -438,22 +438,26 @@ async function verPrecos(botao, itemUrl, numeroItem) {
         const sigiloso = item && item.orcamentoSigiloso === true;
         const estimado = sigiloso ? null : numeroOuNulo(item && item.valorUnitarioEstimado);
 
+        // O valor estimado é do item (igual em todas as linhas); fica na
+        // mesma linha do homologado para a comparação ser direta.
+        const estimadoTexto = sigiloso
+            ? '<span class="tag">sigiloso</span>'
+            : moeda(estimado);
+
         const linhas = resultados.map(r => `<tr>
             <td>${escapar(r.nomeRazaoSocialFornecedor || '')}
                 <br><span class="mudo">${escapar(r.niFornecedor || '')}</span></td>
+            <td class="num">${estimadoTexto}</td>
             <td class="num">${moeda(r.valorUnitarioHomologado)}</td>
             <td class="num">${escapar(r.quantidadeHomologada ?? '—')}</td>
         </tr>`).join('');
 
         celula.innerHTML = `
-            <div class="precos-contexto">
-                <span class="mudo">Valor unitário estimado deste item</span>
-                <strong>${estimado === null ? '<span class="tag">sigiloso</span>' : moeda(estimado)}</strong>
-            </div>
             <div class="tabela-wrap">
                 <table class="precos-tabela">
                     <thead><tr>
                         <th scope="col">Fornecedor</th>
+                        <th scope="col">Valor unitário estimado</th>
                         <th scope="col">Valor unitário homologado</th>
                         <th scope="col">Qtd. homologada</th>
                     </tr></thead>

@@ -149,15 +149,20 @@ const itens = [
 
     await __verPrecos(botao, '/compras/1/2026/2', 1);
 
-    checar('mostra o valor estimado do item', celula.innerHTML.includes('Valor unitário estimado'),
-        '');
-    checar('mostra o valor estimado calculado', celula.innerHTML.includes('100,00'));
+    checar('tem a coluna do estimado', celula.innerHTML.includes('Valor unitário estimado'));
+    checar('tem a coluna do homologado', celula.innerHTML.includes('Valor unitário homologado'));
+    checar('estimado fica na mesma tabela do homologado',
+        !celula.innerHTML.includes('precos-contexto'));
+
+    const linhas = celula.innerHTML.split('<tr>').slice(2);   // pula header
+    checar('cada fornecedor traz os dois valores',
+        linhas.length === 3
+        && linhas.every(l => l.includes('100,00'))
+        && linhas.some(l => l.includes('120,00'))
+        && linhas.some(l => l.includes('95,50'))
+        && linhas.some(l => l.includes('140,00')));
+
     checar('lista os fornecedores', (celula.innerHTML.match(/Fornecedor [ABC]/g) || []).length === 3);
-    checar('rotula o valor homologado', celula.innerHTML.includes('Valor unitário homologado'));
-    checar('mostra os três valores homologados',
-        celula.innerHTML.includes('120,00')
-        && celula.innerHTML.includes('95,50')
-        && celula.innerHTML.includes('140,00'));
     checar('mostra a quantidade homologada', celula.innerHTML.includes('Qtd. homologada'));
 
     // cache em sessionStorage: recarregar a página não rebusca

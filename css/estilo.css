@@ -404,19 +404,6 @@ tr.linha-precos > td {
     padding: 10px 14px;
 }
 
-.precos-contexto {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    font-size: 12px;
-    margin-bottom: 8px;
-}
-
-.precos-contexto strong {
-    font-size: 14px;
-    color: var(--verde-escuro);
-}
-
 table.precos-tabela { font-size: 12px; }
 table.precos-tabela th { font-size: 10px; padding: 6px 8px; }
 table.precos-tabela td { padding: 6px 8px; }

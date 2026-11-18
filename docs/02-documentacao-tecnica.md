@@ -201,16 +201,18 @@ do item:
 
 #### Preço estimado e preço homologado
 
-O botão **Preços** de cada item abre um painel com os dois valores:
+O botão **Preços** de cada item abre uma tabela com quatro colunas: fornecedor,
+**valor unitário estimado** (do item, repetido em cada linha), **valor unitário
+homologado** (do fornecedor) e quantidade homologada.
 
-| Elemento | Origem |
+| Coluna | Origem |
 |---|---|
-| Valor unitário estimado do item | `valorUnitarioEstimado` do item |
+| Valor unitário estimado | `valorUnitarioEstimado` do item |
 | Valor unitário homologado | `valorUnitarioHomologado` de **cada fornecedor** |
 
-O painel lista todos os fornecedores homologados com nome, documento, valor
-unitário e quantidade homologada — não resume em um único número. Quando há
-mais de um fornecedor (cota reservada, desempate), o servidor vê todos.
+O estimado fica na mesma linha do homologado para a comparação ser direta. O
+painel lista **todos** os fornecedores homologados — não resume em um único
+número. Quando há mais de um (cota reservada, desempate), o servidor vê todos.
 
 A tabela de itens mantém apenas o `Unit. estimado`; o homologado vive no
 painel, para não alargar a tabela com um valor que depende de consulta.
