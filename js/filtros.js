@@ -3,6 +3,14 @@
 const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR',
              'PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
+const REGIOES = [
+    ['Sul', ['PR', 'SC', 'RS']],
+    ['Sudeste', ['SP', 'RJ', 'MG', 'ES']],
+    ['Centro-Oeste', ['DF', 'GO', 'MT', 'MS']],
+    ['Nordeste', ['BA', 'SE', 'AL', 'PE', 'PB', 'RN', 'CE', 'PI', 'MA']],
+    ['Norte', ['TO', 'PA', 'AP', 'AM', 'RR', 'AC', 'RO']]
+];
+
 const MODALIDADES = [
     ['1','Leilão - Eletrônico'], ['2','Diálogo Competitivo'], ['3','Concurso'],
     ['4','Concorrência - Eletrônica'], ['5','Concorrência - Presencial'],
@@ -104,7 +112,88 @@ const FILTROS = {
     ]
 };
 
+function blocoUfHtml(filtro) {
+    const grupos = REGIOES.map(([regiao, ufs]) => `
+        <div class="uf-grupo">
+            <strong>${regiao}</strong>
+            <div class="uf-opcoes">
+                ${ufs.map(uf => `
+                    <label>
+                        <input type="checkbox" name="uf-opcao" value="${uf}">
+                        ${uf}
+                    </label>`).join('')}
+            </div>
+        </div>`).join('');
+
+    return `<div class="campo uf-campo">
+        <label>${filtro.rotulo}</label>
+        <button type="button" class="uf-botao" id="ufBotao" aria-haspopup="true">
+            <span id="ufResumo">Todos os estados</span>
+            <span class="seta">▾</span>
+        </button>
+        <div class="uf-painel" id="ufPainel" hidden>
+            <div class="uf-acoes"><a href="#" id="ufLimpar">Limpar seleção</a></div>
+            ${grupos}
+        </div>
+    </div>`;
+}
+
+function atualizarResumoUf() {
+    const marcados = Array.from(
+        document.querySelectorAll('input[name="uf-opcao"]:checked')
+    ).map(caixa => caixa.value);
+
+    const resumo = document.getElementById('ufResumo');
+    if (!resumo) return;
+
+    if (!marcados.length) {
+        resumo.textContent = 'Todos os estados';
+    } else if (marcados.length <= 4) {
+        resumo.textContent = marcados.join(', ');
+    } else {
+        resumo.textContent = `${marcados.length} estados selecionados`;
+    }
+}
+
+function inicializarCampoUf() {
+    const botao = document.getElementById('ufBotao');
+    const painel = document.getElementById('ufPainel');
+    if (!botao || !painel) return;
+
+    botao.addEventListener('click', evento => {
+        evento.stopPropagation();
+        painel.hidden = !painel.hidden;
+        botao.classList.toggle('aberto', !painel.hidden);
+    });
+
+    painel.addEventListener('click', evento => evento.stopPropagation());
+
+    document.addEventListener('click', () => {
+        painel.hidden = true;
+        botao.classList.remove('aberto');
+    });
+
+    painel.querySelectorAll('input[type=checkbox]').forEach(caixa => {
+        caixa.addEventListener('change', atualizarResumoUf);
+    });
+
+    const limpar = document.getElementById('ufLimpar');
+    if (limpar) {
+        limpar.addEventListener('click', evento => {
+            evento.preventDefault();
+            painel.querySelectorAll('input[type=checkbox]').forEach(caixa => {
+                caixa.checked = false;
+            });
+            atualizarResumoUf();
+        });
+    }
+
+    atualizarResumoUf();
+}
+
 function criarCampoHtml(filtro) {
+    if (filtro.tipo === 'uf') return blocoUfHtml(filtro);
+
     const id = `f_${filtro.id}`;
     const classe = filtro.destaque ? 'campo destaque' : 'campo';
 
@@ -119,10 +208,6 @@ function criarCampoHtml(filtro) {
             .join('');
         controle = `<select id="${id}">${opcoes}</select>`;
 
-    } else if (filtro.tipo === 'uf') {
-        const opcoes = UFS.map(uf => `<option value="${uf}">${uf}</option>`).join('');
-        controle = `<select id="${id}" multiple size="5">${opcoes}</select>`;
-
     } else if (filtro.tipo === 'numero') {
         controle = `<input type="number" id="${id}" min="0" step="0.01" placeholder="0,00">`;
 
@@ -133,11 +218,7 @@ function criarCampoHtml(filtro) {
         controle = `<input type="text" id="${id}" placeholder="${placeholder}">`;
     }
 
-    const dica = filtro.dica
-        ? `<span class="mudo">${filtro.dica}</span>`
-        : (filtro.tipo === 'uf'
-            ? '<span class="mudo">Segure Ctrl para escolher mais de um estado.</span>'
-            : '');
+    const dica = filtro.dica ? `<span class="mudo">${filtro.dica}</span>` : '';
 
     return `<div class="${classe}">
         <label for="${id}">${filtro.rotulo}</label>
@@ -153,6 +234,8 @@ function renderizarFiltros(tipo) {
     const campos = FILTROS[tipo] || [];
     alvo.innerHTML = `<div class="grid">${campos.map(criarCampoHtml).join('')}</div>`;
 
+    inicializarCampoUf();
+
     const form = document.getElementById('form-filtros');
     if (form) {
         form.addEventListener('submit', evento => {
@@ -166,6 +249,7 @@ function renderizarFiltros(tipo) {
         limpar.addEventListener('click', () => {
             const form = document.getElementById('form-filtros');
             if (form) form.reset();
+            atualizarResumoUf();
         });
     }
 }
@@ -174,20 +258,19 @@ function pesquisar(tipo) {
     const params = new URLSearchParams({ tipo });
 
     (FILTROS[tipo] || []).forEach(filtro => {
+        if (filtro.id === 'uf') {
+            const marcados = Array.from(
+                document.querySelectorAll('input[name="uf-opcao"]:checked')
+            ).map(caixa => caixa.value);
+
+            if (marcados.length) params.set('uf', marcados.join(','));
+            return;
+        }
+
         const elemento = document.getElementById(`f_${filtro.id}`);
         if (!elemento) return;
 
-        let valor;
-
-        if (elemento.multiple) {
-            valor = Array.from(elemento.selectedOptions)
-                .map(opcao => opcao.value)
-                .filter(Boolean)
-                .join(',');
-        } else {
-            valor = elemento.value.trim();
-        }
-
+        const valor = elemento.value.trim();
         if (valor !== '') params.set(filtro.id, valor);
     });
 

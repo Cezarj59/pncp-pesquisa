@@ -98,6 +98,94 @@ input:focus, select:focus {
 
 .campo.destaque input { border: 2px solid var(--verde); }
 
+/* ---------- seletor de UF com caixas de marcar ---------- */
+
+.uf-campo { position: relative; }
+
+.uf-botao {
+    width: 100%;
+    background: #fff;
+    color: var(--texto);
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    padding: 9px 11px;
+    font-size: 13px;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.uf-botao:hover { border-color: var(--verde); }
+
+.uf-botao.aberto {
+    border-color: var(--verde);
+    box-shadow: 0 0 0 3px rgba(0, 176, 80, .12);
+}
+
+.uf-botao .seta { color: #999; font-size: 10px; }
+
+.uf-painel {
+    position: absolute;
+    z-index: 60;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 340px;
+    max-height: 320px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .14);
+    padding: 10px 14px 12px;
+}
+
+.uf-acoes {
+    display: flex;
+    justify-content: flex-end;
+    border-bottom: 1px solid #F0F0F0;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+}
+
+.uf-acoes a { font-size: 11px; }
+
+.uf-grupo strong {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #999;
+    margin: 10px 0 5px;
+}
+
+.uf-opcoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+}
+
+.uf-opcoes label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--texto);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.uf-opcoes input[type=checkbox] {
+    width: auto;
+    margin: 0;
+    accent-color: var(--verde);
+    cursor: pointer;
+}
+
 .acoes { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
 
 button, .botao {
