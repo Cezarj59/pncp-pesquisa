@@ -5,7 +5,8 @@ const RelatorioPesquisa = (() => {
     const ROTULO_TIPO = {
         edital: 'Editais (contratações publicadas)',
         ata: 'Atas de registro de preços',
-        contrato: 'Contratos'
+        contrato: 'Contratos',
+        cesta: 'Cesta de pesquisa (itens selecionados)'
     };
 
     /* ---------- cálculos ---------- */
@@ -66,11 +67,15 @@ const RelatorioPesquisa = (() => {
         const linhas = dados.itens.map((item, indice) => `
             <tr>
                 <td class="num">${indice + 1}</td>
-                <td>${escapar(item.objeto).slice(0, 300)}</td>
+                <td>${escapar(item.objeto).slice(0, 300)}${
+                    item.fornecedor ? `<br><span class="mudo">${escapar(item.fornecedor)}</span>` : ''
+                }</td>
                 <td>${escapar(item.orgao)}<br><span class="mudo">${escapar(item.municipio)}</span></td>
                 <td class="centro">${escapar(item.uf)}</td>
                 <td class="centro">${data(item.data)}</td>
-                <td class="num">${moeda(item.valorReferencia)}</td>
+                <td class="num">${item.quantidade ?? '—'} ${escapar(item.unidade || '')}</td>
+                <td class="num">${moeda(item.valorEstimado)}</td>
+                <td class="num">${moeda(item.valorHomologado)}</td>
                 <td class="centro">${item.link
                     ? `<a href="${escapar(item.link)}" target="_blank" rel="noopener">PNCP</a>`
                     : '—'}</td>
@@ -78,14 +83,14 @@ const RelatorioPesquisa = (() => {
 
         const resumo = estat ? `
             <table class="valores">
-                <tr><th>Registros na cesta</th><td>${dados.itens.length}</td></tr>
-                <tr><th>Registros com valor publicado</th><td>${estat.quantidade}</td></tr>
-                <tr><th>Menor valor</th><td>${moeda(estat.minimo)}</td></tr>
-                <tr><th>Mediana</th><td><strong>${moeda(estat.mediana)}</strong></td></tr>
-                <tr><th>Média aritmética</th><td>${moeda(estat.media)}</td></tr>
-                <tr><th>Maior valor</th><td>${moeda(estat.maximo)}</td></tr>
+                <tr><th>Itens na cesta</th><td>${dados.itens.length}</td></tr>
+                <tr><th>Itens com valor publicado</th><td>${estat.quantidade}</td></tr>
+                <tr><th>Menor valor unitário</th><td>${moeda(estat.minimo)}</td></tr>
+                <tr><th>Mediana dos valores unitários</th><td><strong>${moeda(estat.mediana)}</strong></td></tr>
+                <tr><th>Média dos valores unitários</th><td>${moeda(estat.media)}</td></tr>
+                <tr><th>Maior valor unitário</th><td>${moeda(estat.maximo)}</td></tr>
             </table>` : `
-            <p class="mudo">Nenhum registro da seleção tem valor publicado — não há
+            <p class="mudo">Nenhum item da seleção tem valor publicado — não há
             estatística a calcular. Os valores podem estar sob sigilo (art. 24 da
             Lei 14.133/2021) ou o resultado ainda não ter sido divulgado.</p>`;
 
@@ -99,10 +104,11 @@ const RelatorioPesquisa = (() => {
                 <h2>1. Identificação</h2>
                 <table class="identificacao">
                     <tr><th>Tipo de consulta</th><td>${escapar(ROTULO_TIPO[dados.tipo] || dados.tipo)}</td></tr>
-                    <tr><th>Termo pesquisado</th><td>${escapar(dados.termo) || '(não informado)'}</td></tr>
-                    <tr><th>Data e hora da consulta</th><td>${dataHora(dados.geradoEm)}</td></tr>
-                    <tr><th>Registros selecionados</th><td>${dados.selecionados ?? dados.itens.length}${
-                        dados.encontrados ? ` de ${dados.encontrados} encontrados` : ''
+                    ${dados.termo ? `<tr><th>Termo pesquisado</th><td>${escapar(dados.termo)}</td></tr>` : ''}
+                    <tr><th>Data e hora</th><td>${dataHora(dados.geradoEm)}</td></tr>
+                    <tr><th>${dados.tipo === 'cesta' ? 'Itens na cesta' : 'Registros selecionados'}</th><td>${dados.selecionados ?? dados.itens.length}${
+                        dados.encontrados && dados.encontrados !== dados.selecionados
+                            ? ` de ${dados.encontrados} encontrados` : ''
                     }</td></tr>
                     <tr><th>Fonte</th><td>pncp.gov.br — dados públicos</td></tr>
                 </table>
@@ -125,8 +131,9 @@ const RelatorioPesquisa = (() => {
                 <table class="cesta">
                     <thead>
                         <tr>
-                            <th>#</th><th>Objeto</th><th>Órgão</th><th>UF</th>
-                            <th>Data</th><th>Valor</th><th>Fonte</th>
+                            <th>#</th><th>Item</th><th>Órgão</th><th>UF</th>
+                            <th>Data</th><th>Qtd.</th>
+                            <th>Unit. estimado</th><th>Unit. homologado</th><th>Fonte</th>
                         </tr>
                     </thead>
                     <tbody>${linhas}</tbody>

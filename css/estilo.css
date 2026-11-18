@@ -327,6 +327,16 @@ a.link:hover { text-decoration: underline; }
     padding: 3px 8px;
 }
 
+/* ---------- cesta de itens ---------- */
+
+.acoes-item { white-space: nowrap; }
+.acoes-item .mini + .mini { margin-left: 6px; }
+
+nav a.com-itens {
+    color: var(--verde-escuro);
+    font-weight: 700;
+}
+
 button:disabled { opacity: .5; cursor: not-allowed; }
 
 /* ---------- botão pequeno e linha de preços ---------- */

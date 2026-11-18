@@ -90,10 +90,24 @@ function moeda(v) {
         : '<span class="mudo">—</span>';
 }
 
+/** Converte para número sem transformar vazio em zero. */
+function numeroOuNulo(v) {
+    if (v === null || v === undefined || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+}
+
 /* ---------- estado da página ---------- */
 
 let itemUrlAtual = '';
 const jaCarregado = { documentos: false, itens: false, termos: false };
+
+// Contexto da contratação, usado ao adicionar itens à cesta
+let contextoAtual = { orgao: '', uf: '', municipio: '', data: '', link: '' };
+
+// Itens exibidos e preços já consultados (por número do item)
+let itensCarregados = [];
+const precosPorItem = new Map();
 
 /* ---------- cache do detalhe ---------- */
 
@@ -126,6 +140,32 @@ function gravarCacheDetalhe(itemUrl, entidade) {
 
 /* ---------- blocos ---------- */
 
+/**
+ * Guarda órgão, UF, município e data para o registro da cesta.
+ * Aceita tanto o formato da listagem quanto o do detalhe.
+ */
+function definirContexto(fonte) {
+    if (!fonte) return;
+
+    const unidade = fonte.unidadeOrgao || {};
+
+    const orgao = fonte.orgao_nome
+        || (fonte.orgaoEntidade && fonte.orgaoEntidade.razaoSocial)
+        || '';
+
+    const uf = fonte.uf || unidade.ufSigla || '';
+    const municipio = fonte.municipio_nome || unidade.municipioNome || '';
+    const data = fonte.data_publicacao_pncp || fonte.dataPublicacaoPncp || fonte.data_assinatura || '';
+
+    contextoAtual = {
+        orgao: orgao || contextoAtual.orgao,
+        uf: uf || contextoAtual.uf,
+        municipio: municipio || contextoAtual.municipio,
+        data: data || contextoAtual.data,
+        link: PNCP.linkPortal(itemUrlAtual) || contextoAtual.link
+    };
+}
+
 function renderDados(entidade) {
     const area = document.getElementById('dados');
     if (!entidade) {
@@ -153,6 +193,8 @@ function renderDados(entidade) {
                 </div>`));
 
     area.innerHTML = `<div class="dados">${linhas.concat(objetos).join('')}</div>`;
+
+    definirContexto(entidade);
 }
 
 /**
@@ -190,6 +232,39 @@ function renderArquivos(lista, itemUrl) {
     }).join('')}</ul>`;
 }
 
+/** Valor unitário homologado, se o próprio item já trouxer. */
+function homologadoDoItem(item) {
+    return numeroOuNulo(item.valorUnitarioHomologado)
+        ?? numeroOuNulo(item.valor_unitario_homologado)
+        ?? numeroOuNulo(item.valorHomologado);
+}
+
+/** Menor preço homologado entre os fornecedores do item. */
+function melhorPreco(resultados) {
+    let melhor = null;
+
+    (resultados || []).forEach(registro => {
+        const valor = numeroOuNulo(registro.valorUnitarioHomologado);
+        if (valor === null || valor <= 0) return;
+
+        if (!melhor || valor < melhor.valor) {
+            melhor = {
+                valor,
+                fornecedor: registro.nomeRazaoSocialFornecedor || '',
+                quantidade: registro.quantidadeHomologada ?? null
+            };
+        }
+    });
+
+    return melhor;
+}
+
+function celulaHomologado(numeroItem, valor) {
+    return `<td class="num" data-homologado="${numeroItem}">${
+        valor ? moeda(valor) : '<span class="mudo">—</span>'
+    }</td>`;
+}
+
 function renderItens(itens, itemUrl) {
     const area = document.getElementById('itens');
 
@@ -198,16 +273,24 @@ function renderItens(itens, itemUrl) {
         return;
     }
 
+    itensCarregados = itens;
+
     const comResultado = itens.filter(i => i.temResultado).length;
 
     let html = `<div class="tabela-wrap"><table>
         <thead><tr>
-            <th scope="col">#</th><th scope="col">Descrição</th><th scope="col">Qtd.</th>
-            <th scope="col">Unit. estimado</th><th scope="col">Resultado</th><th scope="col"></th>
+            <th scope="col">#</th>
+            <th scope="col">Descrição</th>
+            <th scope="col">Qtd.</th>
+            <th scope="col">Unit. estimado</th>
+            <th scope="col">Unit. homologado</th>
+            <th scope="col">Resultado</th>
+            <th scope="col">Ações</th>
         </tr></thead><tbody>`;
 
     itens.forEach(item => {
         const sigiloso = item.orcamentoSigiloso === true;
+        const numeroItem = Number(item.numeroItem);
 
         const estimado = sigiloso
             ? '<span class="tag">sigiloso</span>'
@@ -217,22 +300,41 @@ function renderItens(itens, itemUrl) {
             ? '<span class="tag">homologado</span>'
             : '<span class="mudo">sem resultado</span>';
 
+        // Pode já vir no item; senão é preenchido ao consultar os preços
+        const homologado = homologadoDoItem(item);
+        const jaConsultado = precosPorItem.get(numeroItem);
+        const valorHomologado = jaConsultado && jaConsultado.valor
+            ? jaConsultado.valor
+            : homologado;
+
+        const naCesta = Cesta.contem(itemUrl, numeroItem);
+        const podeAdicionar = item.temResultado || (!sigiloso && numeroOuNulo(item.valorUnitarioEstimado) > 0);
+
         html += `<tr>
             <td>${escapar(item.numeroItem)}</td>
             <td>${escapar(item.descricao || '')}</td>
             <td class="num">${escapar(item.quantidade ?? '')} ${escapar(item.unidadeMedida || '')}</td>
             <td class="num">${estimado}</td>
+            ${celulaHomologado(numeroItem, valorHomologado)}
             <td>${situacao}</td>
-            <td>${item.temResultado
-                ? `<button class="mini" data-precos="1" data-url="${escapar(itemUrl)}" data-item="${Number(item.numeroItem)}">Preços</button>`
-                : ''}</td>
+            <td class="acoes-item">
+                ${item.temResultado
+                    ? `<button class="mini" data-precos="1" data-url="${escapar(itemUrl)}" data-item="${numeroItem}">Preços</button>`
+                    : ''}
+                <button class="mini" data-adicionar="1"
+                        data-url="${escapar(itemUrl)}"
+                        data-item="${numeroItem}"
+                        ${naCesta || !podeAdicionar ? 'disabled' : ''}>
+                    ${naCesta ? 'Na cesta ✓' : 'Adicionar'}
+                </button>
+            </td>
         </tr>`;
 
         // Linha oculta logo abaixo do item; os preços aparecem aqui,
         // sem espremer as colunas da tabela.
         if (item.temResultado) {
             html += `<tr class="linha-precos" style="display: none;">
-                <td colspan="6"></td>
+                <td colspan="7"></td>
             </tr>`;
         }
     });
@@ -252,6 +354,26 @@ function renderItens(itens, itemUrl) {
     }
 
     area.innerHTML = html;
+    atualizarLinkCesta();
+}
+
+/** Consulta os preços homologados do item e preenche a coluna. */
+async function carregarPrecos(itemUrl, numeroItem) {
+    const jaTem = precosPorItem.get(numeroItem);
+    if (jaTem) return jaTem;
+
+    const resultados = await PNCP.resultados(itemUrl, numeroItem);
+    const melhor = melhorPreco(resultados);
+    const registro = { resultados, ...(melhor || { valor: null, fornecedor: '' }) };
+
+    precosPorItem.set(numeroItem, registro);
+
+    const celula = document.querySelector(`td[data-homologado="${numeroItem}"]`);
+    if (celula) {
+        celula.innerHTML = melhor ? moeda(melhor.valor) : '<span class="mudo">—</span>';
+    }
+
+    return registro;
 }
 
 async function verPrecos(botao, itemUrl, numeroItem) {
@@ -271,7 +393,8 @@ async function verPrecos(botao, itemUrl, numeroItem) {
     celula.innerHTML = '<span class="carregando"></span> Buscando preços...';
 
     try {
-        const resultados = await PNCP.resultados(itemUrl, numeroItem);
+        const registro = await carregarPrecos(itemUrl, numeroItem);
+        const resultados = registro.resultados || [];
 
         if (!resultados.length) {
             celula.innerHTML = '<span class="mudo">Nenhum fornecedor homologado para este item.</span>';
@@ -288,6 +411,69 @@ async function verPrecos(botao, itemUrl, numeroItem) {
     } finally {
         botao.disabled = false;
     }
+}
+
+/** Adiciona o item à cesta de pesquisa. */
+async function adicionarItem(botao) {
+    const itemUrl = botao.dataset.url;
+    const numeroItem = Number(botao.dataset.item);
+
+    const item = itensCarregados.find(i => Number(i.numeroItem) === numeroItem);
+    if (!item) return;
+
+    const textoOriginal = botao.textContent.trim();
+    botao.disabled = true;
+    botao.textContent = 'Adicionando...';
+
+    try {
+        // Só consulta fornecedores quando o item tem resultado; sem resultado
+        // não há preço homologado a buscar.
+        const registro = item.temResultado
+            ? await carregarPrecos(itemUrl, numeroItem)
+            : null;
+
+        const estimado = numeroOuNulo(item.valorUnitarioEstimado);
+        const homologado = registro && registro.valor ? registro.valor : homologadoDoItem(item);
+
+        const resultado = Cesta.adicionar({
+            itemUrl,
+            numeroItem,
+            tipo: itemUrl.startsWith('/atas/') ? 'ata'
+                : itemUrl.startsWith('/contratos/') ? 'contrato' : 'edital',
+            descricao: item.descricao || '',
+            unidade: item.unidadeMedida || '',
+            quantidade: numeroOuNulo(item.quantidade),
+            valorEstimado: estimado,
+            valorHomologado: homologado,
+            fornecedor: registro ? registro.fornecedor : '',
+            orgao: contextoAtual.orgao,
+            uf: contextoAtual.uf,
+            municipio: contextoAtual.municipio,
+            data: contextoAtual.data,
+            link: contextoAtual.link
+        });
+
+        if (resultado.ok || resultado.motivo === 'repetido') {
+            botao.textContent = 'Na cesta ✓';
+            botao.disabled = true;
+        } else {
+            botao.textContent = textoOriginal;
+            botao.disabled = false;
+            alert('Não foi possível guardar o item: o armazenamento do navegador está cheio.');
+        }
+
+    } catch (erro) {
+        botao.textContent = textoOriginal;
+        botao.disabled = false;
+        alert(mensagemErro(erro));
+    }
+
+    atualizarLinkCesta();
+}
+
+/** Mostra a quantidade de itens da cesta no topo da página. */
+function atualizarLinkCesta() {
+    if (typeof atualizarNavCesta === 'function') atualizarNavCesta();
 }
 
 function renderTermos(termos) {
@@ -359,6 +545,8 @@ function renderResumo(item) {
         </div>`).join('');
 
     document.getElementById('dados').innerHTML = `<div class="dados">${html}</div>`;
+
+    definirContexto(item);
 }
 
 /* ---------- carga dos dados completos ---------- */
@@ -523,15 +711,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (botao) botao.addEventListener('click', acao);
     });
 
-    // Delegação: os botões de preço nascem depois, junto com a tabela
+    // Delegação: os botões nascem depois, junto com a tabela de itens
     const areaItens = document.getElementById('itens');
     if (areaItens) {
         areaItens.addEventListener('click', evento => {
-            const botao = evento.target.closest('button[data-precos]');
-            if (!botao) return;
-            verPrecos(botao, botao.dataset.url, Number(botao.dataset.item));
+            const precos = evento.target.closest('button[data-precos]');
+            if (precos) {
+                verPrecos(precos, precos.dataset.url, Number(precos.dataset.item));
+                return;
+            }
+
+            const adicionar = evento.target.closest('button[data-adicionar]');
+            if (adicionar && !adicionar.disabled) {
+                adicionarItem(adicionar);
+            }
         });
     }
+
+    atualizarLinkCesta();
 
     carregar();
 });

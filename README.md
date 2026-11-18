@@ -16,8 +16,9 @@ Pronto para GitHub Pages.
 | `editais.html` | filtros de contratações publicadas |
 | `atas.html` | filtros de atas de registro de preços |
 | `contratos.html` | filtros de contratos e empenhos |
-| `resultados.html` | lista os registros, com ordenação, exportação CSV e "buscar mais" |
-| `detalhe.html` | dados completos, documentos e preços por item |
+| `resultados.html` | lista os registros, com ordenação e "buscar mais" |
+| `detalhe.html` | dados completos, documentos, itens e preços por item |
+| `cesta.html` | itens selecionados, resumo de valores, CSV e relatório |
 
 ## Como funciona
 
@@ -25,6 +26,8 @@ Pronto para GitHub Pages.
 editais.html  →  resultados.html?tipo=edital&q=merenda&uf=PR&...
                         ↓ (clique em "Detalhes")
                  detalhe.html?u=/compras/76105634000170/2026/44
+                        ↓ ("Adicionar" nos itens)
+                 cesta.html  →  relatório em PDF
 ```
 
 Os dados vêm **ao vivo** do PNCP, buscados pelo navegador do usuário:
@@ -120,6 +123,7 @@ pncp-demo/
 ├── contratos.html
 ├── resultados.html
 ├── detalhe.html
+├── cesta.html
 ├── relatorio.html
 ├── css/
 │   ├── estilo.css
@@ -128,16 +132,20 @@ pncp-demo/
 │   ├── api.js                cliente da API do PNCP
 │   ├── busca.js              motor: paginação, cache, retentativa, disjuntor
 │   ├── filtros.js            configuração e renderização dos filtros
+│   ├── cesta.js              armazenamento dos itens selecionados
 │   ├── relatorio.js          geração do CSV
 │   ├── relatorio-pesquisa.js documento imprimível de pesquisa de preços
 │   ├── resultados.js         orquestra busca, filtros, ordenação e listagem
-│   └── detalhe.js            dados, documentos, itens e preços
+│   ├── cesta-pagina.js       página da cesta: lista, resumo, CSV e relatório
+│   └── detalhe.js            dados, documentos, itens, preços e cesta
 └── tests/
     ├── api.test.js
     ├── busca.test.js
     ├── detalhe.test.js
-    ├── relatorio.test.js
-    └── selecao.test.js
+    ├── itens.test.js
+    ├── cesta.test.js
+    ├── cesta-pagina.test.js
+    └── relatorio.test.js
 ```
 
 ## Testes
@@ -148,29 +156,47 @@ Sem dependências — basta o Node instalado:
 node tests/busca.test.js
 node tests/api.test.js
 node tests/detalhe.test.js
+node tests/itens.test.js
+node tests/cesta.test.js
+node tests/cesta-pagina.test.js
 node tests/relatorio.test.js
-node tests/selecao.test.js
 ```
 
 Cobrem as decisões do motor (alvo, teto, falha parcial, cache, cancelamento,
 página inicial), a conversão de `item_url` em endpoint e link do portal, o
 comportamento da página de detalhe quando o PNCP recusa (mensagem clara, nova
-tentativa e cache), os cálculos do relatório e a seleção de registros.
+tentativa e cache), a tabela de itens com os dois preços, o armazenamento da
+cesta, os cálculos do relatório e a página da cesta.
+
+## Cesta de pesquisa
+
+A unidade da pesquisa é o **item**, não a contratação. Muitas vezes o técnico
+aproveita um único item de uma compra.
+
+1. Na lista de resultados, abra o **detalhe** de uma contratação.
+2. Em **Itens e preços**, clique em **Adicionar** no item desejado.
+3. Pode voltar, fazer **outra pesquisa** e adicionar mais itens — a cesta
+   acumula em `localStorage`, então sobrevive a recarregar a página e a fechar
+   a aba.
+4. Em **Cesta** (no topo), revise, remova o que não serve e gere o documento.
+
+A tabela de itens mostra **duas colunas de preço**: `Unit. estimado` (o que o
+órgão previu) e `Unit. homologado` (o que foi efetivamente contratado, menor
+valor entre os fornecedores do item).
+
+A cesta exige **no mínimo 3 itens**. Abaixo disso, os botões ficam bloqueados e
+o sistema informa quantos faltam.
 
 ## Relatório de pesquisa
 
-Na tela de resultados, **marque os registros** que vão compor a pesquisa — a
-caixa no cabeçalho seleciona a página inteira. A seleção sobrevive à navegação
-entre páginas.
+A partir da cesta, **Gerar relatório** abre um documento pronto para impressão
+ou para salvar em PDF, contendo:
 
-A cesta exige **no mínimo 3 registros**. Com 1 ou 2 marcados, os botões ficam
-bloqueados e o sistema informa quantos faltam. A partir de 3, **Gerar relatório**
-abre um documento pronto para impressão ou para salvar em PDF, contendo:
-
-1. identificação da consulta (tipo, termo, data e hora, quantos selecionados de quantos encontrados);
-2. os filtros utilizados;
-3. resumo dos valores: quantidade, menor, **mediana**, média e maior;
-4. a cesta de preços, com link para o registro de origem em cada linha;
+1. identificação (data e hora, quantos itens na cesta);
+2. origem dos dados;
+3. resumo dos valores **unitários**: quantidade, menor, **mediana**, média e maior;
+4. a cesta de preços, com item, fornecedor, órgão, quantidade, os dois valores
+   unitários e o link do registro de origem;
 5. campos para o responsável assinalar a metodologia adotada e o valor de
    referência;
 6. espaço para assinatura.
@@ -179,8 +205,7 @@ O documento deixa explícito que os registros correspondem ao que o PNCP
 retornou no momento da consulta, e não à totalidade das contratações do
 período — informação necessária quando o relatório vai ao processo.
 
-**Exportar CSV** segue a mesma regra: com seleção, exige os 3 registros e
-exporta os marcados; sem seleção, exporta todos os resultados filtrados.
+**Exportar CSV** gera a mesma cesta em planilha, com uma coluna para cada preço.
 
 ## Verificação automática da API
 

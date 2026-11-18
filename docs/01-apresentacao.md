@@ -47,8 +47,9 @@ O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcriçã
 | Filtros combinados (UF, município, órgão, modalidade, esfera, poder, situação, valores, período) | implementado |
 | Seleção de múltiplos estados (ex.: PR e SP) | implementado |
 | Ordenação por data, valor ou órgão | implementado |
-| Seleção de registros para compor a cesta | implementado |
-| Exportação em CSV para planilha | implementado |
+| Preço unitário estimado e homologado lado a lado, por item | implementado |
+| Cesta de itens: selecionar um item, pesquisar outra contratação e somar | implementado |
+| Exportação em CSV da cesta | implementado |
 | Relatório de pesquisa em PDF, com cálculos e campos de assinatura | implementado |
 | Detalhe da contratação: documentos, itens e preços homologados | implementado |
 | Link direto para o registro no portal do PNCP | implementado |
@@ -65,11 +66,12 @@ O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcriçã
 3. **Pesquisa.** O sistema busca automaticamente quantas páginas forem
    necessárias, sem perguntar nada.
 4. **Analisa os resultados** na tela, ordenados como preferir.
-5. **Marca os registros** que vão compor a pesquisa. A cesta exige no mínimo
-   três preços; o sistema avisa quantos faltam.
-6. **Gera o relatório** e salva em PDF — ou exporta a planilha, se preferir.
-7. Se quiser conferir a origem, o **detalhe** mostra documentos, itens e
-   preços homologados de cada contratação.
+5. **Abre o detalhe** de uma contratação e vê os itens com **dois preços**:
+   o unitário estimado e o unitário homologado.
+6. **Adiciona à cesta** apenas os itens que interessam. Pode voltar, fazer
+   outra pesquisa e somar mais itens — a cesta guarda tudo.
+7. Na **Cesta**, revisa, remove o que não serve, e **gera o relatório** (PDF)
+   ou exporta a planilha. A cesta exige no mínimo três itens.
 
 ---
 
@@ -77,13 +79,13 @@ O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcriçã
 
 O documento gerado contém:
 
-1. **Identificação** — tipo de consulta, termo, data e hora, quantos registros
-   foram selecionados de quantos foram encontrados.
-2. **Filtros utilizados** — em texto, para constar no processo.
-3. **Resumo dos valores** — quantidade, menor valor, **mediana**, média e
-   maior valor.
-4. **Cesta de preços** — tabela com um registro por linha e o endereço do
-   registro de origem em cada uma.
+1. **Identificação** — data e hora, quantos itens compõem a cesta.
+2. **Origem dos dados** — PNCP, dados públicos.
+3. **Resumo dos valores unitários** — quantidade, menor valor,
+   **mediana**, média e maior valor.
+4. **Cesta de preços** — uma linha por item, com descrição, fornecedor,
+   órgão, município/UF, data, quantidade, **valor unitário estimado**,
+   **valor unitário homologado** e o endereço do registro de origem.
 5. **Metodologia** — campos para o responsável assinalar média, mediana, menor
    preço ou outro, informar o valor de referência adotado e justificar.
 6. **Observações** — declaração de que os registros correspondem ao retorno do
@@ -101,7 +103,7 @@ escolha e a justificativa permanecem com o servidor.
 
 | Limite | Explicação |
 |---|---|
-| Não guarda histórico | cada consulta é ao vivo; fechou a aba, a pesquisa se perde |
+| Não guarda histórico no servidor | a cesta fica no navegador; trocando de computador, ela não acompanha |
 | Não tem usuários nem perfis | qualquer pessoa com o endereço acessa |
 | Não tem base de dados própria | depende inteiramente do PNCP responder |
 | A busca é uma amostra | traz até 100 resultados (ou até 500 no limite máximo), não o universo do período |

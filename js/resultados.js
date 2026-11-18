@@ -13,12 +13,8 @@ let estado = {
     ordenacao: 'data',
     proximaPagina: 1,
     parouPor: 'inicio',
-    completou: true,
-    itensPagina: []
+    completou: true
 };
-
-// Registros marcados pelo usuário (por item_url). Sobrevive à paginação.
-const selecionados = new Set();
 
 let controladorBusca = null;
 
@@ -261,9 +257,7 @@ function renderizarTabela() {
     const area = document.getElementById('tabela');
 
     if (!estado.filtrados.length) {
-        estado.itensPagina = [];
         area.innerHTML = '<p class="mudo">Nenhum resultado para exibir.</p>';
-        atualizarSelecao();
         return;
     }
 
@@ -271,23 +265,13 @@ function renderizarTabela() {
     const itens = estado.filtrados.slice(inicio, inicio + POR_PAGINA);
     const colunas = COLUNAS[estado.tipo];
 
-    estado.itensPagina = itens.map(item => item.item_url || '');
-
-    const todosMarcados = itens.length > 0
-        && itens.every(item => selecionados.has(item.item_url));
-
-    let html = `<div class="tabela-wrap"><table><thead><tr>
-        <th scope="col" style="width: 30px">
-            <input type="checkbox" id="selecionar-pagina"
-                   title="Selecionar todos desta página" ${todosMarcados ? 'checked' : ''}>
-        </th>
-        ${colunas.map(c => `<th scope="col">${c}</th>`).join('')}
-    </tr></thead><tbody>`;
+    let html = `<div class="tabela-wrap"><table><thead><tr>${
+        colunas.map(c => `<th scope="col">${c}</th>`).join('')
+    }</tr></thead><tbody>`;
 
     itens.forEach(item => {
         const link = `detalhe.html?u=${encodeURIComponent(item.item_url || '')}`;
         const acao = `<td><a class="link" href="${link}">Detalhes →</a></td>`;
-        const marcado = selecionados.has(item.item_url) ? 'checked' : '';
 
         // Guarda o registro para a página de detalhe exibir ao menos o
         // resumo, caso a API recuse a consulta.
@@ -295,12 +279,7 @@ function renderizarTabela() {
             sessionStorage.setItem(`pncp:${item.item_url || ''}`, JSON.stringify(item));
         } catch (_) { /* armazenamento indisponível */ }
 
-        const caixa = `<td class="centro">
-            <input type="checkbox" data-selecionar="1"
-                   data-url="${escapar(item.item_url)}" ${marcado}>
-        </td>`;
-
-        html += `<tr>${caixa}${celulas(estado.tipo, item).join('')}${acao}</tr>`;
+        html += `<tr>${celulas(estado.tipo, item).join('')}${acao}</tr>`;
     });
 
     html += '</tbody></table></div>';
@@ -314,227 +293,6 @@ function renderizarTabela() {
     </div>`;
 
     area.innerHTML = html;
-    atualizarSelecao();
-}
-
-/* ---------- seleção ---------- */
-
-// Mínimo de preços para compor a cesta de pesquisa
-const MINIMO_CESTA = 3;
-
-function itensDaSelecao() {
-    if (!selecionados.size) return [];
-    return estado.filtrados.filter(item => selecionados.has(item.item_url));
-}
-
-function atualizarSelecao() {
-    const contador = document.getElementById('contador-selecao');
-    const botaoRelatorio = document.getElementById('btnRelatorio');
-    const botaoCsv = document.getElementById('btnExportar');
-    const avisoCesta = document.getElementById('aviso-cesta');
-
-    const total = selecionados.size;
-    const selecaoIncompleta = total > 0 && total < MINIMO_CESTA;
-
-    if (contador) {
-        contador.textContent = total
-            ? `${total} selecionado${total > 1 ? 's' : ''}`
-            : 'Marque os registros que vão para o relatório';
-    }
-
-    if (avisoCesta) {
-        avisoCesta.style.display = selecaoIncompleta ? '' : 'none';
-        avisoCesta.textContent = selecaoIncompleta
-            ? `Faltam ${MINIMO_CESTA - total} — a pesquisa exige pelo menos ${MINIMO_CESTA} preços.`
-            : '';
-    }
-
-    if (botaoRelatorio) {
-        botaoRelatorio.disabled = total < MINIMO_CESTA;
-        botaoRelatorio.textContent = total
-            ? `Gerar relatório (${total})`
-            : 'Gerar relatório';
-    }
-
-    if (botaoCsv) {
-        // Sem seleção, exporta tudo. Com seleção parcial, exige o mínimo.
-        botaoCsv.disabled = selecaoIncompleta;
-        botaoCsv.textContent = total ? `Exportar CSV (${total})` : 'Exportar CSV';
-        botaoCsv.title = total
-            ? 'Exporta os registros selecionados'
-            : 'Exporta todos os resultados filtrados';
-    }
-}
-
-function irPara(pagina) {
-    estado.pagina = pagina;
-    renderizarTabela();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-/* ---------- exportação ---------- */
-
-const CABECALHOS = {
-    edital: ['Objeto', 'Órgão', 'Município', 'UF', 'Modalidade', 'Situação',
-             'Valor estimado', 'Valor homologado', 'Publicação', 'Link PNCP'],
-    ata: ['Objeto', 'Órgão', 'Município', 'UF', 'Vigência início', 'Vigência fim',
-          'Permite adesão', 'Assinatura', 'Link PNCP'],
-    contrato: ['Objeto', 'Fornecedor', 'CNPJ fornecedor', 'Órgão', 'Município', 'UF',
-               'Valor global', 'Assinatura', 'Link PNCP']
-};
-
-function linhaCsv(tipo, item) {
-    const link = PNCP.linkPortal(item.item_url) || '';
-
-    if (tipo === 'ata') {
-        return [
-            item.description || item.title || '',
-            item.orgao_nome || '',
-            item.municipio_nome || '',
-            item.uf || '',
-            item.vigencia_inicio || '',
-            item.vigencia_fim || '',
-            item.possibilidade_adesao ? 'Sim' : 'Não',
-            item.data_assinatura || '',
-            link
-        ];
-    }
-
-    if (tipo === 'contrato') {
-        return [
-            item.description || item.title || '',
-            item.fornecedor_nome || '',
-            item.fornecedor_ni || '',
-            item.orgao_nome || '',
-            item.municipio_nome || '',
-            item.uf || '',
-            item.valor_global ?? '',
-            item.data_assinatura || '',
-            link
-        ];
-    }
-
-    return [
-        item.description || item.title || '',
-        item.orgao_nome || '',
-        item.municipio_nome || '',
-        item.uf || '',
-        item.modalidade_licitacao_nome || '',
-        item.situacao_nome || '',
-        item.valor_total_estimado ?? '',
-        item.valor_total_homologado ?? '',
-        item.data_publicacao_pncp || '',
-        link
-    ];
-}
-
-function exportarCsv() {
-    // Com seleção parcial, exige o mínimo da cesta
-    if (selecionados.size && selecionados.size < MINIMO_CESTA) return;
-
-    // Com seleção, exporta só o que foi marcado; sem seleção, exporta tudo.
-    const base = selecionados.size ? itensDaSelecao() : estado.filtrados;
-    if (!base.length) return;
-
-    const tipo = estado.tipo;
-    const linhas = base.map(item => linhaCsv(tipo, item));
-
-    Relatorio.baixarCsv(
-        Relatorio.nomeArquivo(tipo, estado.params.get('q')),
-        CABECALHOS[tipo],
-        linhas
-    );
-}
-
-/* ---------- relatório de pesquisa ---------- */
-
-const ROTULO_STATUS = {
-    recebendo: 'Recebendo proposta',
-    encerradas: 'Encerradas',
-    homologadas: 'Com resultado homologado'
-};
-
-function descreverFiltros() {
-    const p = estado.params;
-    const linhas = [];
-
-    const termo = (p.get('q') || '').trim();
-    linhas.push(`Palavra-chave: ${termo || '(não informada — busca pela modalidade)'}`);
-
-    const ufs = (p.get('uf') || '').split(',').filter(Boolean);
-    linhas.push(`UF: ${ufs.length ? ufs.join(', ') : 'todas'}`);
-
-    const modalidade = p.get('modalidade');
-    if (modalidade) {
-        const nome = (MODALIDADES.find(m => m[0] === modalidade) || [])[1];
-        if (nome) linhas.push(`Modalidade: ${nome}`);
-    }
-
-    const status = p.get('status');
-    if (status) linhas.push(`Situação da disputa: ${ROTULO_STATUS[status] || status}`);
-
-    if (p.get('municipio')) linhas.push(`Município: ${p.get('municipio')}`);
-    if (p.get('orgao')) linhas.push(`Órgão: ${p.get('orgao')}`);
-    if (p.get('fornecedor')) linhas.push(`Fornecedor: ${p.get('fornecedor')}`);
-    if (p.get('esfera')) linhas.push(`Esfera: ${p.get('esfera')}`);
-    if (p.get('situacao')) linhas.push(`Situação: ${p.get('situacao')}`);
-
-    const dias = Number(p.get('dias') || 0);
-    if (dias > 0) linhas.push(`Período: últimos ${dias} dias`);
-
-    const valorMin = numero(p.get('valorMin'));
-    const valorMax = numero(p.get('valorMax'));
-
-    if (valorMin !== null) {
-        linhas.push(`Valor mínimo: ${valorMin.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
-    }
-
-    if (valorMax !== null) {
-        linhas.push(`Valor máximo: ${valorMax.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
-    }
-
-    return linhas;
-}
-
-function abrirRelatorio() {
-    if (selecionados.size < MINIMO_CESTA) return;
-
-    const base = itensDaSelecao();
-    if (!base.length) return;
-
-    const itens = base.map(item => ({
-        objeto: item.description || item.title || '',
-        orgao: item.orgao_nome || '',
-        municipio: item.municipio_nome || '',
-        uf: item.uf || '',
-        data: item.data_publicacao_pncp || item.data_assinatura || '',
-        valorReferencia: valorPrincipal(item),
-        valorEstimado: numero(item.valor_total_estimado),
-        valorHomologado: numero(item.valor_total_homologado) ?? numero(item.valor_global),
-        link: PNCP.linkPortal(item.item_url) || ''
-    }));
-
-    const dados = {
-        geradoEm: new Date().toISOString(),
-        tipo: estado.tipo,
-        termo: (estado.params.get('q') || '').trim(),
-        filtros: descreverFiltros(),
-        encontrados: estado.filtrados.length,
-        selecionados: itens.length,
-        itens
-    };
-
-    try {
-        sessionStorage.setItem('pncp:relatorio', JSON.stringify(dados));
-    } catch (_) {
-        alert('Não foi possível preparar o relatório: o armazenamento do navegador está cheio.');
-        return;
-    }
-
-    const janela = window.open('relatorio.html', '_blank');
-
-    // Se o navegador bloquear a nova aba, abre na mesma
-    if (!janela) window.location.href = 'relatorio.html';
 }
 
 /* ---------- cache da última busca ---------- */
@@ -662,9 +420,6 @@ async function carregar() {
         estado.filtrados = aplicarOrdenacao(aplicarFiltros(resultado.itens));
         estado.pagina = 1;
 
-        // Nova busca: a seleção anterior não vale mais
-        selecionados.clear();
-
         status.innerHTML = mensagemResultado(
             resultado.itens.length, estado.filtrados.length, resultado.completou);
 
@@ -777,43 +532,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const exportar = document.getElementById('btnExportar');
-    if (exportar) exportar.addEventListener('click', exportarCsv);
-
-    const relatorio = document.getElementById('btnRelatorio');
-    if (relatorio) relatorio.addEventListener('click', abrirRelatorio);
-
     const buscarMais = document.getElementById('btnBuscarMais');
     if (buscarMais) buscarMais.addEventListener('click', continuarBusca);
-
-    // Seleção de registros: delegada, porque a tabela é redesenhada
-    const tabela = document.getElementById('tabela');
-    if (tabela) {
-        tabela.addEventListener('change', evento => {
-            const alvo = evento.target;
-
-            if (alvo.id === 'selecionar-pagina') {
-                const marcar = alvo.checked;
-
-                (estado.itensPagina || []).forEach(url => {
-                    if (marcar) selecionados.add(url);
-                    else selecionados.delete(url);
-                });
-
-                renderizarTabela();
-                return;
-            }
-
-            if (alvo.dataset && alvo.dataset.selecionar) {
-                const url = alvo.dataset.url;
-
-                if (alvo.checked) selecionados.add(url);
-                else selecionados.delete(url);
-
-                atualizarSelecao();
-            }
-        });
-    }
 
     // Abandona a busca em andamento ao sair da página
     window.addEventListener('pagehide', () => {

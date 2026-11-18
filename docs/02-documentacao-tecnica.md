@@ -184,21 +184,44 @@ fixo por minuto. Daí a política conservadora.
 
 ## 6. Regras de negócio
 
-### 6.1 Seleção
+### 6.1 A unidade é o item
 
-- `Set` de `item_url`, sobrevive à paginação;
-- nova busca limpa a seleção;
-- caixa no cabeçalho seleciona a página inteira.
+A pesquisa de preços não é sobre a contratação inteira: é sobre o item. O
+técnico costuma aproveitar um item de uma compra e outro de outra.
+
+Por isso a seleção saiu da lista de resultados e foi para o detalhe, no nível
+do item:
+
+- `js/cesta.js` guarda a cesta em `localStorage`, com chave
+  `itemUrl#numeroItem` — o mesmo item em contratações diferentes não colide;
+- a cesta **sobrevive** a novas pesquisas, recarregar a página e fechar a aba;
+- um item já adicionado não duplica: a segunda tentativa é recusada com
+  `motivo: 'repetido'`;
+- a leitura é tolerante a dado corrompido (retorna lista vazia).
+
+#### Preço estimado e preço homologado
+
+A tabela de itens mostra duas colunas:
+
+| Coluna | Origem |
+|---|---|
+| `Unit. estimado` | `valorUnitarioEstimado` do item |
+| `Unit. homologado` | campo do item, se existir; senão, o **menor** `valorUnitarioHomologado` entre os fornecedores |
+
+O preço homologado é buscado **sob demanda**: clicar em *Preços* ou em
+*Adicionar* dispara uma única consulta ao endpoint de resultados daquele item e
+preenche a coluna. Itens sem resultado não consultam nada — não há preço a
+buscar.
 
 ### 6.2 Mínimo da cesta
 
-`MINIMO_CESTA = 3` em `js/resultados.js`.
+`Cesta.MINIMO = 3` em `js/cesta.js`.
 
-- com 1 ou 2 marcados, relatório e CSV ficam bloqueados;
+- com 1 ou 2 itens, o relatório fica bloqueado;
 - o sistema informa quantos faltam;
-- **sem seleção**, o CSV exporta todos os resultados filtrados (uso distinto:
-  análise, não cesta);
-- as funções validam o mínimo internamente, além do estado dos botões.
+- o CSV é liberado com qualquer quantidade (inclusive vazia, para o caso de
+  exportação parcial);
+- a página da cesta valida o mínimo antes de abrir o documento.
 
 O número **não cita norma**. A fonte normativa varia por órgão e deve ser
 definida pelo setor de licitações antes da integração.
@@ -206,7 +229,8 @@ definida pelo setor de licitações antes da integração.
 ### 6.3 Relatório
 
 Montado em `js/relatorio-pesquisa.js` a partir de um objeto preparado em
-`resultados.js` e transportado por `sessionStorage`. Cálculos:
+`js/cesta-pagina.js` e transportado por `sessionStorage`. A referência de valor
+é o **unitário homologado**, com queda para o estimado quando não houver.
 
 ```
 mediana = valor central (ímpar) ou média dos dois centrais (par)
@@ -224,11 +248,13 @@ Apenas valores maiores que zero entram na conta.
 | `js/api.js` | 223 | cliente do PNCP: URLs, conversão de `item_url`, redirecionamento |
 | `js/busca.js` | 258 | motor: política, cache, retentativa, disjuntor |
 | `js/filtros.js` | 290 | configuração e renderização dos filtros |
-| `js/resultados.js` | 824 | orquestração, filtros locais, ordenação, seleção, CSV, relatório |
-| `js/detalhe.js` | 537 | dados, documentos, itens, preços |
+| `js/resultados.js` | 544 | orquestração, filtros locais, ordenação, listagem |
+| `js/detalhe.js` | 734 | dados, documentos, itens, dois preços e adição à cesta |
+| `js/cesta.js` | 87 | armazenamento da cesta em `localStorage` |
+| `js/cesta-pagina.js` | 258 | página da cesta: lista, resumo, CSV e relatório |
 | `js/relatorio.js` | 52 | geração do CSV |
-| `js/relatorio-pesquisa.js` | 206 | documento imprimível |
-| `css/estilo.css` | 367 | interface |
+| `js/relatorio-pesquisa.js` | 213 | documento imprimível |
+| `css/estilo.css` | 377 | interface |
 | `css/relatorio.css` | 143 | documento e regras de impressão |
 
 ---
@@ -238,14 +264,16 @@ Apenas valores maiores que zero entram na conta.
 ### 8.1 Suítes (execução local, sem dependências)
 
 ```bash
-node tests/busca.test.js       # 13 verificações
-node tests/api.test.js         # 11
-node tests/detalhe.test.js     #  8
-node tests/relatorio.test.js   # 24
-node tests/selecao.test.js     # 25
+node tests/busca.test.js          # 13 verificações
+node tests/api.test.js            # 11
+node tests/detalhe.test.js        #  8
+node tests/itens.test.js          # 10
+node tests/cesta.test.js          # 18
+node tests/cesta-pagina.test.js   # 19
+node tests/relatorio.test.js      # 24
 ```
 
-**Total: 81 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
+**Total: 103 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
 `fetch` simulado — testam o código real, não uma cópia.
 
 ### 8.2 Verificação diária
