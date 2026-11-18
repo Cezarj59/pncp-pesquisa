@@ -47,7 +47,7 @@ O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcriçã
 | Filtros combinados (UF, município, órgão, modalidade, esfera, poder, situação, valores, período) | implementado |
 | Seleção de múltiplos estados (ex.: PR e SP) | implementado |
 | Ordenação por data, valor ou órgão | implementado |
-| Preço unitário estimado e homologado lado a lado, por item | implementado |
+| Painel de preços por item: valor estimado e todos os homologados | implementado |
 | Cesta de itens: selecionar um item, pesquisar outra contratação e somar | implementado |
 | Exportação em CSV da cesta | implementado |
 | Relatório de pesquisa em PDF, com cálculos e campos de assinatura | implementado |
@@ -66,8 +66,9 @@ O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcriçã
 3. **Pesquisa.** O sistema busca automaticamente quantas páginas forem
    necessárias, sem perguntar nada.
 4. **Analisa os resultados** na tela, ordenados como preferir.
-5. **Abre o detalhe** de uma contratação e vê os itens com **dois preços**:
-   o unitário estimado e o unitário homologado.
+5. **Abre o detalhe** de uma contratação e clica em **Preços** no item: o painel
+   mostra o **valor unitário estimado** e, para cada fornecedor, o
+   **valor unitário homologado**.
 6. **Adiciona à cesta** apenas os itens que interessam. Pode voltar, fazer
    outra pesquisa e somar mais itens — a cesta guarda tudo.
 7. Na **Cesta**, revisa, remove o que não serve, e **gera o relatório** (PDF)

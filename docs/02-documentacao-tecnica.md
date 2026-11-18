@@ -201,28 +201,27 @@ do item:
 
 #### Preço estimado e preço homologado
 
-A tabela de itens mostra duas colunas:
+O botão **Preços** de cada item abre um painel com os dois valores:
 
-| Coluna | Origem |
+| Elemento | Origem |
 |---|---|
-| `Unit. estimado` | `valorUnitarioEstimado` do item |
-| `Unit. homologado` | campo do item, se existir; senão, o **menor** `valorUnitarioHomologado` entre os fornecedores |
+| Valor unitário estimado do item | `valorUnitarioEstimado` do item |
+| Valor unitário homologado | `valorUnitarioHomologado` de **cada fornecedor** |
 
-O preço homologado é buscado **sob demanda**: clicar em *Preços* ou em
-*Adicionar* dispara uma única consulta ao endpoint de resultados daquele item e
-preenche a coluna. Itens sem resultado não consultam nada — não há preço a
-buscar.
+O painel lista todos os fornecedores homologados com nome, documento, valor
+unitário e quantidade homologada — não resume em um único número. Quando há
+mais de um fornecedor (cota reservada, desempate), o servidor vê todos.
 
-O resultado fica em cache por 5 minutos, em memória e em `sessionStorage`, de
-modo que adicionar, remover e adicionar de novo o mesmo item não repete a
-consulta.
+A tabela de itens mantém apenas o `Unit. estimado`; o homologado vive no
+painel, para não alargar a tabela com um valor que depende de consulta.
 
-**O "menor" é heurística, não adjudicação.** O endpoint devolve uma linha por
-fornecedor homologado. O menor valor coincide com o vencedor na maioria dos
-casos, mas não em todos: em cota reservada o item é dividido entre dois
-fornecedores, e em desempate o vencedor pode não ser o de menor preço. Por isso
-a célula indica quantos fornecedores existem e o botão *Preços* lista todos —
-a conferência continua sendo do servidor.
+Para a cesta, usa-se o **menor** `valorUnitarioHomologado` positivo do item,
+com registro do fornecedor correspondente. É heurística, não adjudicação: o
+menor preço coincide com o vencedor na maioria dos casos, mas não em cota
+reservada nem em desempate — daí o painel completo ao lado.
+
+A consulta é sob demanda e fica em cache por 5 minutos, em memória e em
+`sessionStorage`: adicionar, remover e adicionar de novo não repete a consulta.
 
 ### 6.2 Mínimo da cesta
 
@@ -278,13 +277,13 @@ Apenas valores maiores que zero entram na conta.
 node tests/busca.test.js          # 13 verificações
 node tests/api.test.js            # 11
 node tests/detalhe.test.js        #  8
-node tests/itens.test.js          # 18
+node tests/itens.test.js          # 22
 node tests/cesta.test.js          # 18
 node tests/cesta-pagina.test.js   # 19
 node tests/relatorio.test.js      # 24
 ```
 
-**Total: 111 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
+**Total: 115 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
 `fetch` simulado — testam o código real, não uma cópia.
 
 ### 8.2 Verificação diária

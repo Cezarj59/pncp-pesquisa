@@ -68,7 +68,8 @@ eval(fs.readFileSync(path.join(RAIZ, 'js/detalhe.js'), 'utf8')
     + '\n;globalThis.__renderItens = renderItens;'
     + '\n;globalThis.__definirContexto = definirContexto;'
     + '\n;globalThis.__precos = precosPorItem;'
-    + '\n;globalThis.__carregarPrecos = carregarPrecos;');
+    + '\n;globalThis.__carregarPrecos = carregarPrecos;'
+    + '\n;globalThis.__verPrecos = verPrecos;');
 
 let falhas = 0;
 function checar(rotulo, condicao, extra) {
@@ -93,8 +94,7 @@ const itens = [
     const html = el('itens').innerHTML;
 
     checar('tem coluna de estimado', html.includes('Unit. estimado'));
-    checar('tem coluna de homologado', html.includes('Unit. homologado'));
-    checar('marca a célula do homologado', html.includes('data-homologado="1"'));
+    checar('não tem coluna de homologado na tabela', !html.includes('Unit. homologado'));
     checar('mostra os preços', html.includes('100,00') && html.includes('40,00'));
     checar('botão Adicionar presente', html.includes('data-adicionar="1"'));
     checar('botão Preços no item com resultado', html.includes('data-precos="1"'));
@@ -132,9 +132,32 @@ const itens = [
     await __carregarPrecos('/compras/1/2026/2', 1);
     checar('não repete a requisição', chamadasResultados === 1, `(${chamadasResultados})`);
 
+    /* ---------- painel que abre no botão Preços ---------- */
+
+    console.log('\npainel de preços');
+
     __renderItens(itens, '/compras/1/2026/2');
-    checar('coluna avisa quando há vários fornecedores',
-        el('itens').innerHTML.includes('3 fornecedores'));
+
+    const celula = { innerHTML: '' };
+    const linha = { style: { display: 'none' }, firstElementChild: celula };
+    const botao = {
+        disabled: false,
+        dataset: {},
+        closest: () => ({ nextElementSibling: linha })
+    };
+
+    await __verPrecos(botao, '/compras/1/2026/2', 1);
+
+    checar('mostra o valor estimado do item', celula.innerHTML.includes('Valor unitário estimado'),
+        '');
+    checar('mostra o valor estimado calculado', celula.innerHTML.includes('100,00'));
+    checar('lista os fornecedores', (celula.innerHTML.match(/Fornecedor [ABC]/g) || []).length === 3);
+    checar('rotula o valor homologado', celula.innerHTML.includes('Valor unitário homologado'));
+    checar('mostra os três valores homologados',
+        celula.innerHTML.includes('120,00')
+        && celula.innerHTML.includes('95,50')
+        && celula.innerHTML.includes('140,00'));
+    checar('mostra a quantidade homologada', celula.innerHTML.includes('Qtd. homologada'));
 
     // cache em sessionStorage: recarregar a página não rebusca
     __precos.clear();

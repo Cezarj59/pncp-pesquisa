@@ -180,9 +180,12 @@ aproveita um único item de uma compra.
    a aba.
 4. Em **Cesta** (no topo), revise, remova o que não serve e gere o documento.
 
-A tabela de itens mostra **duas colunas de preço**: `Unit. estimado` (o que o
-órgão previu) e `Unit. homologado` (o que foi efetivamente contratado, menor
-valor entre os fornecedores do item).
+O botão **Preços** de cada item abre um painel com o **valor unitário estimado**
+do item e, para cada fornecedor homologado, o **valor unitário homologado** e a
+quantidade homologada. É ali que se compara o previsto com o contratado.
+
+Para a cesta, o sistema usa o **menor** valor homologado do item e guarda o
+fornecedor correspondente.
 
 A cesta exige **no mínimo 3 itens**. Abaixo disso, os botões ficam bloqueados e
 o sistema informa quantos faltam.

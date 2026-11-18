@@ -263,16 +263,6 @@ function melhorPreco(resultados) {
     return melhor;
 }
 
-function celulaHomologado(numeroItem, valor, fornecedores) {
-    const sufixo = fornecedores > 1
-        ? `<br><span class="mudo">${fornecedores} fornecedores</span>`
-        : '';
-
-    return `<td class="num" data-homologado="${numeroItem}" title="${
-        fornecedores > 1 ? 'Menor valor homologado entre os fornecedores do item' : ''
-    }">${valor ? moeda(valor) : '<span class="mudo">—</span>'}${valor ? sufixo : ''}</td>`;
-}
-
 function renderItens(itens, itemUrl) {
     const area = document.getElementById('itens');
 
@@ -291,7 +281,6 @@ function renderItens(itens, itemUrl) {
             <th scope="col">Descrição</th>
             <th scope="col">Qtd.</th>
             <th scope="col">Unit. estimado</th>
-            <th scope="col" title="Menor valor homologado entre os fornecedores do item">Unit. homologado</th>
             <th scope="col">Resultado</th>
             <th scope="col">Ações</th>
         </tr></thead><tbody>`;
@@ -308,13 +297,6 @@ function renderItens(itens, itemUrl) {
             ? '<span class="tag">homologado</span>'
             : '<span class="mudo">sem resultado</span>';
 
-        // Pode já vir no item; senão é preenchido ao consultar os preços
-        const homologado = homologadoDoItem(item);
-        const jaConsultado = precosPorItem.get(numeroItem);
-        const valorHomologado = jaConsultado && jaConsultado.valor
-            ? jaConsultado.valor
-            : homologado;
-
         const naCesta = Cesta.contem(itemUrl, numeroItem);
         const podeAdicionar = item.temResultado || (!sigiloso && numeroOuNulo(item.valorUnitarioEstimado) > 0);
 
@@ -323,8 +305,6 @@ function renderItens(itens, itemUrl) {
             <td>${escapar(item.descricao || '')}</td>
             <td class="num">${escapar(item.quantidade ?? '')} ${escapar(item.unidadeMedida || '')}</td>
             <td class="num">${estimado}</td>
-            ${celulaHomologado(numeroItem, valorHomologado,
-                jaConsultado ? jaConsultado.fornecedores : 0)}
             <td>${situacao}</td>
             <td class="acoes-item">
                 ${item.temResultado
@@ -343,7 +323,7 @@ function renderItens(itens, itemUrl) {
         // sem espremer as colunas da tabela.
         if (item.temResultado) {
             html += `<tr class="linha-precos" style="display: none;">
-                <td colspan="7"></td>
+                <td colspan="6"></td>
             </tr>`;
         }
     });
@@ -383,15 +363,6 @@ async function carregarPrecos(itemUrl, numeroItem) {
     const registro = { resultados, ...(melhor || { valor: null, fornecedor: '', fornecedores: 0 }) };
 
     precosPorItem.set(numeroItem, registro);
-
-    const celula = document.querySelector(`td[data-homologado="${numeroItem}"]`);
-    if (celula) {
-        celula.innerHTML = melhor
-            ? `${moeda(melhor.valor)}${melhor.fornecedores > 1
-                ? `<br><span class="mudo">${melhor.fornecedores} fornecedores</span>` : ''}`
-            : '<span class="mudo">—</span>';
-    }
-
     return registro;
 }
 
@@ -449,10 +420,32 @@ async function verPrecos(botao, itemUrl, numeroItem) {
             return;
         }
 
-        celula.innerHTML = `<ul class="precos-lista">${resultados.map(r => `<li>
-            <strong>${escapar(r.nomeRazaoSocialFornecedor || '')}</strong>
-            <br><span class="mudo">${escapar(r.niFornecedor || '')} · ${moeda(r.valorUnitarioHomologado)} · qtd ${escapar(r.quantidadeHomologada ?? '')}</span>
-        </li>`).join('')}</ul>`;
+        const item = itensCarregados.find(i => Number(i.numeroItem) === Number(numeroItem));
+        const sigiloso = item && item.orcamentoSigiloso === true;
+        const estimado = sigiloso ? null : numeroOuNulo(item && item.valorUnitarioEstimado);
+
+        const linhas = resultados.map(r => `<tr>
+            <td>${escapar(r.nomeRazaoSocialFornecedor || '')}
+                <br><span class="mudo">${escapar(r.niFornecedor || '')}</span></td>
+            <td class="num">${moeda(r.valorUnitarioHomologado)}</td>
+            <td class="num">${escapar(r.quantidadeHomologada ?? '—')}</td>
+        </tr>`).join('');
+
+        celula.innerHTML = `
+            <div class="precos-contexto">
+                <span class="mudo">Valor unitário estimado deste item</span>
+                <strong>${estimado === null ? '<span class="tag">sigiloso</span>' : moeda(estimado)}</strong>
+            </div>
+            <div class="tabela-wrap">
+                <table class="precos-tabela">
+                    <thead><tr>
+                        <th scope="col">Fornecedor</th>
+                        <th scope="col">Valor unitário homologado</th>
+                        <th scope="col">Qtd. homologada</th>
+                    </tr></thead>
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>`;
 
     } catch (erro) {
         celula.innerHTML = `<span class="mudo">${escapar(mensagemErro(erro))}</span>`;

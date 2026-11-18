@@ -359,16 +359,22 @@ tr.linha-precos > td {
     padding: 10px 14px;
 }
 
-.precos-lista {
-    margin: 0;
-    padding-left: 18px;
+.precos-contexto {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
     font-size: 12px;
-    max-height: 220px;
-    overflow: auto;
+    margin-bottom: 8px;
 }
 
-.precos-lista li { margin-bottom: 6px; }
-.precos-lista li:last-child { margin-bottom: 0; }
+.precos-contexto strong {
+    font-size: 14px;
+    color: var(--verde-escuro);
+}
+
+table.precos-tabela { font-size: 12px; }
+table.precos-tabela th { font-size: 10px; padding: 6px 8px; }
+table.precos-tabela td { padding: 6px 8px; }
 
 @media (max-width: 640px) {
     main { padding: 12px; }
