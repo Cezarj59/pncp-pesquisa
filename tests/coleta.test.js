@@ -118,6 +118,63 @@ const antes = Coleta.listar().length;
 Coleta.remover(segunda.id);
 checar('remove coleta', Coleta.listar().length === antes - 1);
 
+/* ---------- nome a partir da pesquisa ---------- */
+
+console.log('\nnome da coleta');
+
+armazem.clear();
+Coleta.criar();
+
+Coleta.adicionar({ ...item(1), busca: 'merenda escolar' });
+const nomeSugerido = Coleta.ativa().nome;
+
+checar('usa o termo da busca', nomeSugerido.startsWith('merenda escolar'), nomeSugerido);
+checar('acrescenta a data curta', /·\s*\d{2}\/\d{2}$/.test(nomeSugerido), nomeSugerido);
+
+Coleta.adicionar(item(2));
+checar('não renomeia ao adicionar mais itens',
+    Coleta.ativa().nome === nomeSugerido);
+
+armazem.clear();
+Coleta.criar('Minha coleta');
+Coleta.adicionar({ ...item(1), busca: 'merenda' });
+checar('respeita nome escolhido pelo usuário', Coleta.ativa().nome === 'Minha coleta');
+
+armazem.clear();
+Coleta.criar();
+Coleta.adicionar(item(1));
+checar('sem busca usa a descrição do item',
+    Coleta.ativa().nome.startsWith('Item 1'), Coleta.ativa().nome);
+
+/* ---------- backup ---------- */
+
+console.log('\nbackup');
+
+const conteudo = Coleta.exportarJson();
+checar('gera JSON válido', (() => {
+    try {
+        const dados = JSON.parse(conteudo);
+        return dados.versao === 1 && Array.isArray(dados.coletas) && dados.coletas.length === 1;
+    } catch (_) {
+        return false;
+    }
+})());
+
+armazem.clear();
+const importadas = Coleta.importarJson(conteudo);
+
+checar('importa as coletas', importadas === 1, `(${importadas})`);
+checar('restaura os itens', Coleta.listar()[0].itens.length === 1);
+checar('não duplica ao importar de novo', Coleta.importarJson(conteudo) === 0);
+
+let mensagemErro = '';
+try {
+    Coleta.importarJson('isso não é json');
+} catch (erro) {
+    mensagemErro = erro.message;
+}
+checar('recusa arquivo inválido', /JSON/.test(mensagemErro), mensagemErro);
+
 /* ---------- migração do formato antigo ---------- */
 
 console.log('\nmigração');

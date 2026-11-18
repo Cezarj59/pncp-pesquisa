@@ -104,7 +104,7 @@ escolha e a justificativa permanecem com o servidor.
 
 | Limite | Explicação |
 |---|---|
-| Não guarda histórico no servidor | a coleta fica no navegador; trocando de computador, ela não acompanha |
+| As coletas ficam no navegador | não há servidor; limpar os dados de navegação apaga tudo. O **backup em arquivo** preserva e permite levar para outro computador |
 | Não tem usuários nem perfis | qualquer pessoa com o endereço acessa |
 | Não tem base de dados própria | depende inteiramente do PNCP responder |
 | A busca é uma amostra | traz até 100 resultados (ou até 500 no limite máximo), não o universo do período |
@@ -183,7 +183,7 @@ integração:
 
 | Item | Número |
 |---|---|
-| Verificações automatizadas | 132 |
+| Verificações automatizadas | 142 |
 | Suítes de teste | 7 |
 | Verificação diária da API | 1 (GitHub Actions) |
 | Telas | 8 |

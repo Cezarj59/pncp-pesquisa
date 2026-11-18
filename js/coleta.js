@@ -27,6 +27,28 @@ const Coleta = (() => {
         return `Coleta de ${dia}, ${hora}`;
     }
 
+    /** dd/mm — usado para diferenciar duas coletas do mesmo assunto. */
+    function dataCurta() {
+        return new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    }
+
+    function pareceNomePadrao(nome) {
+        return /^Coleta de \d/.test(String(nome || ''));
+    }
+
+    /**
+     * Nome a partir do contexto da pesquisa, para o usuário reconhecer a
+     * coleta: a palavra-chave buscada, ou a descrição do primeiro item.
+     * A data curta evita duas coletas com o mesmo nome.
+     */
+    function nomeSugerido(termo, descricao) {
+        const base = String(termo || descricao || '').trim();
+        if (!base) return null;
+
+        const curto = base.length > 48 ? `${base.slice(0, 45).trim()}…` : base;
+        return `${curto} · ${dataCurta()}`;
+    }
+
     function chaveDe(itemUrl, numeroItem) {
         return `${itemUrl || ''}#${numeroItem}`;
     }
@@ -230,6 +252,12 @@ const Coleta = (() => {
             return { ok: false, motivo: 'repetido', coleta: alvo };
         }
 
+        // Primeiro item: renomeia a coleta com o assunto da pesquisa
+        if (!alvo.itens.length && pareceNomePadrao(alvo.nome)) {
+            const sugestao = nomeSugerido(item.busca, item.descricao);
+            if (sugestao) alvo.nome = sugestao;
+        }
+
         alvo.itens.push({
             ...item,
             chave,
@@ -273,10 +301,55 @@ const Coleta = (() => {
         return listar().reduce((soma, c) => soma + c.itens.length, 0);
     }
 
+    /* ---------- backup ---------- */
+
+    /** Todas as coletas em JSON, para guardar fora do navegador. */
+    function exportarJson() {
+        return JSON.stringify({
+            versao: 1,
+            exportadoEm: new Date().toISOString(),
+            coletas: listar()
+        }, null, 2);
+    }
+
+    /** Junta as coletas de um arquivo às existentes, sem sobrescrever. */
+    function importarJson(texto) {
+        let dados;
+
+        try {
+            dados = JSON.parse(texto);
+        } catch (_) {
+            throw new Error('O arquivo não é um JSON válido.');
+        }
+
+        const lista = Array.isArray(dados) ? dados : dados && dados.coletas;
+
+        if (!Array.isArray(lista)) {
+            throw new Error('O arquivo não contém coletas.');
+        }
+
+        const atuais = lerCru();
+        let adicionadas = 0;
+
+        lista.forEach(coleta => {
+            if (!coleta || !coleta.id || !Array.isArray(coleta.itens)) return;
+            if (atuais.some(c => c.id === coleta.id)) return;
+            atuais.push(coleta);
+            adicionadas++;
+        });
+
+        if (!gravar(atuais)) {
+            throw new Error('Não foi possível gravar: o armazenamento do navegador está cheio.');
+        }
+
+        return adicionadas;
+    }
+
     return {
         listar, ativa, criar, garantirAtiva, definirAtiva, renomear, remover,
         adicionar, removerItem, contem, itens, total, totalGeral,
         encerrarAtiva, deveNovaColeta, limparPedidoNova,
+        exportarJson, importarJson,
         chaveDe, MINIMO
     };
 

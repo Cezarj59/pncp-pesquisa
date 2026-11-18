@@ -9,18 +9,10 @@ const Relatorio = (() => {
     }
 
     /**
-     * Gera e baixa um CSV compatível com Excel em português:
-     * separador ponto e vírgula e BOM UTF-8 para os acentos.
+     * Gera e baixa um arquivo de texto qualquer.
      */
-    function baixarCsv(nomeArquivo, cabecalhos, linhas) {
-        const conteudo = [cabecalhos, ...linhas]
-            .map(linha => linha.map(campo).join(';'))
-            .join('\r\n');
-
-        const blob = new Blob(['\uFEFF' + conteudo], {
-            type: 'text/csv;charset=utf-8;'
-        });
-
+    function baixarArquivo(nomeArquivo, tipoConteudo, conteudo) {
+        const blob = new Blob([conteudo], { type: tipoConteudo });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
 
@@ -30,8 +22,19 @@ const Relatorio = (() => {
         link.click();
         document.body.removeChild(link);
 
-        // Libera a memória do blob
         setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    /**
+     * Gera e baixa um CSV compatível com Excel em português:
+     * separador ponto e vírgula e BOM UTF-8 para os acentos.
+     */
+    function baixarCsv(nomeArquivo, cabecalhos, linhas) {
+        const conteudo = [cabecalhos, ...linhas]
+            .map(linha => linha.map(campo).join(';'))
+            .join('\r\n');
+
+        baixarArquivo(nomeArquivo, 'text/csv;charset=utf-8;', '\uFEFF' + conteudo);
     }
 
     function nomeArquivo(tipo, termo) {
@@ -47,6 +50,6 @@ const Relatorio = (() => {
         return `pncp-${tipo}-${limpo}-${data}.csv`;
     }
 
-    return { baixarCsv, nomeArquivo };
+    return { baixarArquivo, baixarCsv, nomeArquivo };
 
 })();

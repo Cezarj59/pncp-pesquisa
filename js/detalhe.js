@@ -105,6 +105,9 @@ const jaCarregado = { documentos: false, itens: false, termos: false };
 // Contexto da contratação, usado ao adicionar itens à coleta
 let contextoAtual = { orgao: '', uf: '', municipio: '', data: '', link: '' };
 
+// Termo da pesquisa que levou até esta contratação (nomeia a coleta)
+let termoBusca = '';
+
 // Itens exibidos e preços já consultados (por número do item)
 let itensCarregados = [];
 const precosPorItem = new Map();
@@ -492,6 +495,7 @@ async function adicionarItem(botao) {
             numeroItem,
             tipo: itemUrl.startsWith('/atas/') ? 'ata'
                 : itemUrl.startsWith('/contratos/') ? 'contrato' : 'edital',
+            busca: termoBusca,
             descricao: item.descricao || '',
             unidade: item.unidadeMedida || '',
             quantidade: numeroOuNulo(item.quantidade),
@@ -646,6 +650,7 @@ async function carregar() {
     const itemUrl = params.get('u') || '';
 
     itemUrlAtual = itemUrl;
+    termoBusca = (params.get('q') || '').trim();
 
     const status = document.getElementById('status');
 

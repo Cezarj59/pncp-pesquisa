@@ -26,13 +26,22 @@
             <h2>Coletas de preços</h2>
             <span class="espaco"></span>
             <span id="resumo-geral" class="mudo"></span>
+            <button class="sec" id="btnBackup">Baixar backup</button>
+            <button class="sec" id="btnImportar">Importar backup</button>
             <button id="btnNovaColeta">Nova coleta</button>
         </div>
+
+        <input type="file" id="arquivoBackup" accept=".json,application/json" hidden>
 
         <p class="sub" style="margin-top: 6px">
             Cada coleta reúne os itens de uma pesquisa de preços. Ao gerar o
             relatório, a coleta é encerrada e os próximos itens vão para uma
             nova — o histórico fica todo guardado aqui.
+        </p>
+
+        <p class="mudo" style="margin-top: 4px">
+            As coletas ficam guardadas <strong>neste navegador</strong>. Para
+            levar para outro computador, use o backup.
         </p>
 
         <div id="aviso"></div>

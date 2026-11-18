@@ -252,6 +252,49 @@ function removerItem(coletaId, chave) {
     renderizar();
 }
 
+/* ---------- backup ---------- */
+
+function avisar(mensagem, positivo) {
+    const area = document.getElementById('aviso');
+    if (!area) return;
+
+    area.innerHTML = `<div class="aviso ${positivo ? 'ok' : 'erro'}" style="margin-bottom: 10px;">
+        ${escapar(mensagem)}
+    </div>`;
+}
+
+function baixarBackup() {
+    const conteudo = Coleta.exportarJson();
+    const dataArquivo = new Date().toISOString().slice(0, 10);
+
+    Relatorio.baixarArquivo(`pncp-coletas-${dataArquivo}.json`, 'application/json', conteudo);
+    avisar('Backup gerado. Guarde o arquivo — ele permite recuperar as coletas em outro navegador.', true);
+}
+
+function importarBackup(arquivo) {
+    if (!arquivo) return;
+
+    const leitor = new FileReader();
+
+    leitor.onload = () => {
+        try {
+            const quantidade = Coleta.importarJson(String(leitor.result));
+            renderizar();
+
+            if (quantidade) {
+                avisar(`${quantidade} coleta(s) importada(s).`, true);
+            } else {
+                avisar('Nenhuma coleta nova no arquivo — as existentes já estavam guardadas.', true);
+            }
+        } catch (erro) {
+            avisar(erro.message || 'Não foi possível ler o arquivo.', false);
+        }
+    };
+
+    leitor.onerror = () => avisar('Não foi possível ler o arquivo.', false);
+    leitor.readAsText(arquivo);
+}
+
 /* ---------- inicialização ---------- */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -283,6 +326,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('btnNovaColeta').addEventListener('click', novaColeta);
+
+    document.getElementById('btnBackup').addEventListener('click', baixarBackup);
+
+    const botaoImportar = document.getElementById('btnImportar');
+    const campoArquivo = document.getElementById('arquivoBackup');
+
+    if (botaoImportar && campoArquivo) {
+        botaoImportar.addEventListener('click', () => campoArquivo.click());
+        campoArquivo.addEventListener('change', () => {
+            importarBackup(campoArquivo.files && campoArquivo.files[0]);
+            campoArquivo.value = '';
+        });
+    }
 
     renderizar();
 });

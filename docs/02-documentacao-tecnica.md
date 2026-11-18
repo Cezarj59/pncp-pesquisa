@@ -223,7 +223,26 @@ reservada nem em desempate — daí o painel completo ao lado.
 A consulta é sob demanda e fica em cache por 5 minutos, em memória e em
 `sessionStorage`: adicionar, remover e adicionar de novo não repete a consulta.
 
-### 6.2 Mínimo da coleta
+### 6.2 Nome, histórico e backup
+
+O nome da coleta vem do contexto, para o usuário reconhecê-la depois:
+
+- primeiro item adicionado a uma coleta de nome padrão → renomeia para
+  `{termo da busca} · {dd/mm}`, ou `{descrição do item}` quando não houver termo;
+- nome escolhido pelo usuário (`Renomear`) **nunca** é sobrescrito;
+- o termo da busca chega ao detalhe pelo parâmetro `q` no link de resultados.
+
+Várias coletas convivem em `localStorage`, sob a chave `pncp:coletas`, e a
+ativa em `pncp:coleta-ativa`. Gerar o relatório marca a coleta como encerrada
+(`pncp:nova-coleta`), e o próximo item adicionado abre uma nova — sem criar
+listas vazias.
+
+**Backup:** `Coleta.exportarJson()` devolve todas as coletas em JSON;
+`Coleta.importarJson(texto)` junta as do arquivo às existentes **sem
+sobrescrever nem duplicar** (a chave é o `id` da coleta). É a forma de
+preservar o trabalho quando o navegador é limpo ou trocado.
+
+### 6.3 Mínimo da coleta
 
 `Coleta.MINIMO = 3` em `js/coleta.js`.
 
@@ -236,7 +255,7 @@ A consulta é sob demanda e fica em cache por 5 minutos, em memória e em
 O número **não cita norma**. A fonte normativa varia por órgão e deve ser
 definida pelo setor de licitações antes da integração.
 
-### 6.3 Relatório
+### 6.4 Relatório
 
 Montado em `js/relatorio-pesquisa.js` a partir de um objeto preparado em
 `js/coleta-pagina.js` e transportado por `sessionStorage`. A referência de valor
@@ -278,12 +297,12 @@ node tests/busca.test.js          # 13 verificações
 node tests/api.test.js            # 11
 node tests/detalhe.test.js        #  8
 node tests/itens.test.js          # 22
-node tests/coleta.test.js         # 33
+node tests/coleta.test.js         # 43
 node tests/coleta-pagina.test.js  # 21
 node tests/relatorio.test.js      # 24
 ```
 
-**Total: 132 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
+**Total: 142 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
 `fetch` simulado — testam o código real, não uma cópia.
 
 ### 8.2 Verificação diária

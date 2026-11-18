@@ -184,16 +184,26 @@ aproveita um único item de uma compra.
 O sistema guarda **várias coletas**, não uma só. Cada uma tem nome, data e os
 seus itens, e nenhuma é apagada ao iniciar outra.
 
+O nome é sugerido a partir da pesquisa: o **termo buscado** mais a data curta
+(`merenda escolar · 18/11`). Se não houver termo, usa a descrição do primeiro
+item. Nome escolhido pelo usuário nunca é sobrescrito.
+
 | Ação | Efeito |
 |---|---|
 | **Nova coleta** | abre uma lista nova; as anteriores continuam guardadas |
 | **Usar esta** | passa a adicionar itens nessa coleta |
-| **Renomear** | troca o nome (padrão: "Coleta de 18/11/2026, 19:30") |
+| **Renomear** | troca o nome |
 | **Gerar relatório** | emite o documento e **encerra** a coleta |
 | **Excluir** | remove a coleta e seus itens |
+| **Baixar backup** | salva todas as coletas em um `.json` |
+| **Importar backup** | junta as coletas do arquivo às existentes, sem duplicar |
 
 Depois de gerar o relatório, os próximos itens adicionados vão automaticamente
 para uma coleta nova — a que foi relatada fica intacta no histórico.
+
+As coletas ficam no **armazenamento do navegador** (`localStorage`), não em
+servidor. Limpar os dados de navegação apaga tudo; o backup é a forma de
+preservar e de levar para outro computador.
 
 O botão **Preços** de cada item abre um painel com o **valor unitário estimado**
 do item e, para cada fornecedor homologado, o **valor unitário homologado** e a

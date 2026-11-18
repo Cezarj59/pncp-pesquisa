@@ -270,7 +270,11 @@ function renderizarTabela() {
     }</tr></thead><tbody>`;
 
     itens.forEach(item => {
-        const link = `detalhe.html?u=${encodeURIComponent(item.item_url || '')}`;
+        // O termo da busca vai junto para o detalhe nomear a coleta
+        const termo = (estado.params.get('q') || '').trim();
+        const link = `detalhe.html?u=${encodeURIComponent(item.item_url || '')}${
+            termo ? `&q=${encodeURIComponent(termo)}` : ''
+        }`;
         const acao = `<td><a class="link" href="${link}">Detalhes →</a></td>`;
 
         // Guarda o registro para a página de detalhe exibir ao menos o
