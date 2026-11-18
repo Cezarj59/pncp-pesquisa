@@ -120,18 +120,23 @@ pncp-demo/
 ├── contratos.html
 ├── resultados.html
 ├── detalhe.html
+├── relatorio.html
 ├── css/
-│   └── estilo.css
+│   ├── estilo.css
+│   └── relatorio.css
 ├── js/
-│   ├── api.js         cliente da API do PNCP
-│   ├── busca.js       motor: paginação, cache, retentativa, disjuntor
-│   ├── filtros.js     configuração e renderização dos filtros
-│   ├── relatorio.js   geração do CSV
-│   ├── resultados.js  orquestra busca, filtros, ordenação e listagem
-│   └── detalhe.js     dados, documentos, itens e preços
+│   ├── api.js                cliente da API do PNCP
+│   ├── busca.js              motor: paginação, cache, retentativa, disjuntor
+│   ├── filtros.js            configuração e renderização dos filtros
+│   ├── relatorio.js          geração do CSV
+│   ├── relatorio-pesquisa.js documento imprimível de pesquisa de preços
+│   ├── resultados.js         orquestra busca, filtros, ordenação e listagem
+│   └── detalhe.js            dados, documentos, itens e preços
 └── tests/
     ├── api.test.js
-    └── busca.test.js
+    ├── busca.test.js
+    ├── detalhe.test.js
+    └── relatorio.test.js
 ```
 
 ## Testes
@@ -142,12 +147,33 @@ Sem dependências — basta o Node instalado:
 node tests/busca.test.js
 node tests/api.test.js
 node tests/detalhe.test.js
+node tests/relatorio.test.js
 ```
 
 Cobrem as decisões do motor (alvo, teto, falha parcial, cache, cancelamento,
-página inicial), a conversão de `item_url` em endpoint e link do portal, e o
+página inicial), a conversão de `item_url` em endpoint e link do portal, o
 comportamento da página de detalhe quando o PNCP recusa (mensagem clara, nova
-tentativa e cache).
+tentativa e cache) e os cálculos do relatório de pesquisa.
+
+## Relatório de pesquisa
+
+Na tela de resultados, **Gerar relatório** abre um documento pronto para
+impressão ou para salvar em PDF, contendo:
+
+1. identificação da consulta (tipo, termo, data e hora, fonte);
+2. os filtros utilizados;
+3. resumo dos valores: quantidade, menor, **mediana**, média e maior;
+4. a cesta de preços, com link para o registro de origem em cada linha;
+5. campos para o responsável assinalar a metodologia adotada e o valor de
+   referência;
+6. espaço para assinatura.
+
+O documento deixa explícito que os registros correspondem ao que o PNCP
+retornou no momento da consulta, e não à totalidade das contratações do
+período — informação necessária quando o relatório vai ao processo.
+
+O **Exportar CSV** continua disponível para quem preferir montar a planilha
+por conta própria.
 
 ## Verificação automática da API
 

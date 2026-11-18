@@ -1,0 +1,137 @@
+/* ====== Relatório de pesquisa — tela e impressão ====== */
+
+:root {
+    --texto: #1B1B1B;
+    --mudo: #666;
+    --borda: #C9C9C9;
+    --verde: #00B050;
+    --verde-escuro: #00703A;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 32px 16px 64px;
+    background: #ECECEC;
+    color: var(--texto);
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#folha {
+    max-width: 210mm;
+    margin: 0 auto;
+    background: #fff;
+    padding: 18mm 16mm;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, .12);
+}
+
+h1 {
+    font-size: 20px;
+    margin: 0 0 4px;
+    color: var(--verde-escuro);
+}
+
+h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin: 22px 0 8px;
+    padding-bottom: 4px;
+    color: var(--verde-escuro);
+    border-bottom: 1px solid var(--borda);
+}
+
+.sub, .mudo { color: var(--mudo); }
+
+table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+
+th, td {
+    border: 1px solid var(--borda);
+    padding: 5px 7px;
+    text-align: left;
+    vertical-align: top;
+}
+
+thead th { background: #F4F6F5; font-size: 11px; }
+
+.num { text-align: right; white-space: nowrap; }
+.centro { text-align: center; }
+
+.identificacao th { width: 34%; background: #F9FAF9; }
+.valores th { width: 55%; background: #F9FAF9; }
+
+.filtros { margin: 0; padding-left: 18px; }
+.filtros li { margin-bottom: 2px; }
+
+.metodologia { list-style: none; padding-left: 2px; }
+.metodologia li { margin-bottom: 4px; }
+
+.pauta {
+    border-bottom: 1px solid var(--borda);
+    height: 18px;
+    margin-bottom: 10px;
+}
+
+.assinatura { margin-top: 36px; }
+.assinatura p {
+    margin: 30px 0 0;
+    padding-bottom: 2px;
+    width: 82%;
+    border-bottom: 1px solid #999;
+}
+
+.acoes {
+    margin-top: 28px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+button {
+    background: var(--verde-escuro);
+    color: #fff;
+    border: 0;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+button:hover { background: var(--verde); }
+
+.aviso {
+    padding: 14px 16px;
+    border-left: 4px solid #C9A227;
+    background: #FBF6E7;
+}
+
+a { color: var(--verde-escuro); }
+
+/* ---------- impressão ---------- */
+
+@media print {
+    body {
+        background: #fff;
+        padding: 0;
+        font-size: 10.5px;
+    }
+
+    #folha {
+        max-width: none;
+        padding: 0;
+        box-shadow: none;
+    }
+
+    .nao-imprimir { display: none; }
+
+    h2 { break-after: avoid; }
+    tr { break-inside: avoid; }
+    section { break-inside: auto; }
+
+    a { color: var(--texto); text-decoration: none; }
+
+    @page { margin: 15mm; }
+}

@@ -370,6 +370,92 @@ function exportarCsv() {
     );
 }
 
+/* ---------- relatório de pesquisa ---------- */
+
+const ROTULO_STATUS = {
+    recebendo: 'Recebendo proposta',
+    encerradas: 'Encerradas',
+    homologadas: 'Com resultado homologado'
+};
+
+function descreverFiltros() {
+    const p = estado.params;
+    const linhas = [];
+
+    const termo = (p.get('q') || '').trim();
+    linhas.push(`Palavra-chave: ${termo || '(não informada — busca pela modalidade)'}`);
+
+    const ufs = (p.get('uf') || '').split(',').filter(Boolean);
+    linhas.push(`UF: ${ufs.length ? ufs.join(', ') : 'todas'}`);
+
+    const modalidade = p.get('modalidade');
+    if (modalidade) {
+        const nome = (MODALIDADES.find(m => m[0] === modalidade) || [])[1];
+        if (nome) linhas.push(`Modalidade: ${nome}`);
+    }
+
+    const status = p.get('status');
+    if (status) linhas.push(`Situação da disputa: ${ROTULO_STATUS[status] || status}`);
+
+    if (p.get('municipio')) linhas.push(`Município: ${p.get('municipio')}`);
+    if (p.get('orgao')) linhas.push(`Órgão: ${p.get('orgao')}`);
+    if (p.get('fornecedor')) linhas.push(`Fornecedor: ${p.get('fornecedor')}`);
+    if (p.get('esfera')) linhas.push(`Esfera: ${p.get('esfera')}`);
+    if (p.get('situacao')) linhas.push(`Situação: ${p.get('situacao')}`);
+
+    const dias = Number(p.get('dias') || 0);
+    if (dias > 0) linhas.push(`Período: últimos ${dias} dias`);
+
+    const valorMin = numero(p.get('valorMin'));
+    const valorMax = numero(p.get('valorMax'));
+
+    if (valorMin !== null) {
+        linhas.push(`Valor mínimo: ${valorMin.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    }
+
+    if (valorMax !== null) {
+        linhas.push(`Valor máximo: ${valorMax.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    }
+
+    return linhas;
+}
+
+function abrirRelatorio() {
+    if (!estado.filtrados.length) return;
+
+    const itens = estado.filtrados.map(item => ({
+        objeto: item.description || item.title || '',
+        orgao: item.orgao_nome || '',
+        municipio: item.municipio_nome || '',
+        uf: item.uf || '',
+        data: item.data_publicacao_pncp || item.data_assinatura || '',
+        valorReferencia: valorPrincipal(item),
+        valorEstimado: numero(item.valor_total_estimado),
+        valorHomologado: numero(item.valor_total_homologado) ?? numero(item.valor_global),
+        link: PNCP.linkPortal(item.item_url) || ''
+    }));
+
+    const dados = {
+        geradoEm: new Date().toISOString(),
+        tipo: estado.tipo,
+        termo: (estado.params.get('q') || '').trim(),
+        filtros: descreverFiltros(),
+        itens
+    };
+
+    try {
+        sessionStorage.setItem('pncp:relatorio', JSON.stringify(dados));
+    } catch (_) {
+        alert('Não foi possível preparar o relatório: o armazenamento do navegador está cheio.');
+        return;
+    }
+
+    const janela = window.open('relatorio.html', '_blank');
+
+    // Se o navegador bloquear a nova aba, abre na mesma
+    if (!janela) window.location.href = 'relatorio.html';
+}
+
 /* ---------- cache da última busca ---------- */
 
 function salvarCache() {
@@ -609,6 +695,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const exportar = document.getElementById('btnExportar');
     if (exportar) exportar.addEventListener('click', exportarCsv);
+
+    const relatorio = document.getElementById('btnRelatorio');
+    if (relatorio) relatorio.addEventListener('click', abrirRelatorio);
 
     const buscarMais = document.getElementById('btnBuscarMais');
     if (buscarMais) buscarMais.addEventListener('click', continuarBusca);
