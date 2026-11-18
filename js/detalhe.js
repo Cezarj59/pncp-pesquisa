@@ -95,6 +95,35 @@ function moeda(v) {
 let itemUrlAtual = '';
 const jaCarregado = { documentos: false, itens: false, termos: false };
 
+/* ---------- cache do detalhe ---------- */
+
+const CACHE_DETALHE_TTL = 5 * 60 * 1000;
+
+function lerCacheDetalhe(itemUrl) {
+    try {
+        const bruto = sessionStorage.getItem(`pncp:detalhe:${itemUrl}`);
+        if (!bruto) return null;
+
+        const dados = JSON.parse(bruto);
+        if (Date.now() - dados.quando > CACHE_DETALHE_TTL) return null;
+
+        return dados.entidade;
+    } catch (_) {
+        return null;
+    }
+}
+
+function gravarCacheDetalhe(itemUrl, entidade) {
+    try {
+        sessionStorage.setItem(`pncp:detalhe:${itemUrl}`, JSON.stringify({
+            quando: Date.now(),
+            entidade
+        }));
+    } catch (_) {
+        // Cota do sessionStorage: seguir sem cache
+    }
+}
+
 /* ---------- blocos ---------- */
 
 function renderDados(entidade) {
@@ -294,8 +323,12 @@ function mensagemErro(erro) {
         return 'Os detalhes desta contratação ainda não estão disponíveis no PNCP.';
     }
 
-    if (/HTTP 429/.test(texto) || /failed to fetch|networkerror|load failed|network request failed/i.test(texto)) {
-        return 'O PNCP não respondeu agora. Tente novamente em alguns instantes.';
+    if (/HTTP 429/.test(texto)) {
+        return 'O PNCP limitou as consultas por alguns minutos.';
+    }
+
+    if (/failed to fetch|networkerror|load failed|network request failed/i.test(texto)) {
+        return 'O PNCP não respondeu agora.';
     }
 
     return 'Não foi possível carregar as informações agora.';
@@ -328,6 +361,44 @@ function renderResumo(item) {
     document.getElementById('dados').innerHTML = `<div class="dados">${html}</div>`;
 }
 
+/* ---------- carga dos dados completos ---------- */
+
+let temResumoAtual = false;
+
+async function carregarDados() {
+    const status = document.getElementById('status');
+
+    const anterior = document.getElementById('btnTentarNovamente');
+    if (anterior) anterior.remove();
+
+    const emCache = lerCacheDetalhe(itemUrlAtual);
+    if (emCache) {
+        renderDados(emCache);
+        status.innerHTML = '';
+        return;
+    }
+
+    status.innerHTML = '<div class="aviso"><span class="carregando"></span> Buscando os dados completos...</div>';
+
+    try {
+        const entidade = await PNCP.detalhe(itemUrlAtual);
+        gravarCacheDetalhe(itemUrlAtual, entidade);
+        renderDados(entidade);
+        status.innerHTML = '';
+
+    } catch (erro) {
+        if (erro && erro.name === 'AbortError') return;
+
+        status.innerHTML = `<div class="aviso${temResumoAtual ? '' : ' erro'}">
+            ${escapar(mensagemErro(erro))}
+            <button class="mini" id="btnTentarNovamente" style="margin-left: 10px;">Tentar novamente</button>
+        </div>`;
+
+        const botao = document.getElementById('btnTentarNovamente');
+        if (botao) botao.addEventListener('click', carregarDados);
+    }
+}
+
 /* ---------- carga ---------- */
 
 async function carregar() {
@@ -347,18 +418,11 @@ async function carregar() {
 
     // 1. Resumo imediato, vindo da listagem (não depende de rede)
     const resumo = lerCache(itemUrl);
+    temResumoAtual = Boolean(resumo);
     if (resumo) renderResumo(resumo);
 
-    status.innerHTML = '<div class="aviso"><span class="carregando"></span> Buscando os dados completos...</div>';
-
-    // 2. Dados completos
-    try {
-        const entidade = await PNCP.detalhe(itemUrl);
-        renderDados(entidade);
-        status.innerHTML = '';
-    } catch (erro) {
-        status.innerHTML = `<div class="aviso${resumo ? '' : ' erro'}">${escapar(mensagemErro(erro))}</div>`;
-    }
+    // 2. Dados completos, com cache e possibilidade de nova tentativa
+    await carregarDados();
 
     // 3. Blocos sob demanda: só aparecem os que fazem sentido para o tipo
     const tipo = itemUrl.split('/').filter(Boolean)[0];

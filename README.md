@@ -141,10 +141,13 @@ Sem dependências — basta o Node instalado:
 ```bash
 node tests/busca.test.js
 node tests/api.test.js
+node tests/detalhe.test.js
 ```
 
 Cobrem as decisões do motor (alvo, teto, falha parcial, cache, cancelamento,
-página inicial) e a conversão de `item_url` em endpoint e link do portal.
+página inicial), a conversão de `item_url` em endpoint e link do portal, e o
+comportamento da página de detalhe quando o PNCP recusa (mensagem clara, nova
+tentativa e cache).
 
 ## Verificação automática da API
 
