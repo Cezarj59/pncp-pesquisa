@@ -149,17 +149,40 @@ function inicializarCampoUf() {
     const painel = document.getElementById('ufPainel');
     if (!botao || !painel) return;
 
+    botao.setAttribute('aria-expanded', 'false');
+    botao.setAttribute('aria-controls', 'ufPainel');
+
+    function abrir() {
+        painel.hidden = false;
+        botao.classList.add('aberto');
+        botao.setAttribute('aria-expanded', 'true');
+
+        const primeira = painel.querySelector('input[type=checkbox]');
+        if (primeira) primeira.focus();
+    }
+
+    function fechar(devolverFoco) {
+        painel.hidden = true;
+        botao.classList.remove('aberto');
+        botao.setAttribute('aria-expanded', 'false');
+        if (devolverFoco) botao.focus();
+    }
+
     botao.addEventListener('click', evento => {
         evento.stopPropagation();
-        painel.hidden = !painel.hidden;
-        botao.classList.toggle('aberto', !painel.hidden);
+        if (painel.hidden) abrir(); else fechar(false);
     });
 
     painel.addEventListener('click', evento => evento.stopPropagation());
 
-    document.addEventListener('click', () => {
-        painel.hidden = true;
-        botao.classList.remove('aberto');
+    document.addEventListener('click', () => fechar(false));
+
+    // Esc fecha o painel e devolve o foco ao botão
+    painel.addEventListener('keydown', evento => {
+        if (evento.key === 'Escape') {
+            evento.stopPropagation();
+            fechar(true);
+        }
     });
 
     painel.querySelectorAll('input[type=checkbox]').forEach(caixa => {

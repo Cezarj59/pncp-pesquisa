@@ -27,7 +27,21 @@
             <a class="link" id="voltar" href="editais.html">← Nova pesquisa</a>
         </div>
 
-        <div id="status" style="margin-top:12px"></div>
+        <div id="status" style="margin-top: 12px"></div>
+
+        <div class="linha" id="barra-resultados" style="margin: 4px 0 12px;">
+            <label for="ordenacao" class="mudo">Ordenar por</label>
+            <select id="ordenacao" style="width: auto;">
+                <option value="data">Data (mais recente)</option>
+                <option value="valor-desc">Valor (maior primeiro)</option>
+                <option value="valor-asc">Valor (menor primeiro)</option>
+                <option value="orgao">Órgão (A-Z)</option>
+            </select>
+            <span class="espaco"></span>
+            <button class="sec" id="btnBuscarMais" style="display: none;">Buscar mais</button>
+            <button class="sec" id="btnExportar">Exportar CSV</button>
+        </div>
+
         <div id="tabela"></div>
     </div>
 
@@ -36,6 +50,7 @@
 <script src="js/filtros.js"></script>
 <script src="js/api.js"></script>
 <script src="js/busca.js"></script>
+<script src="js/relatorio.js"></script>
 <script src="js/resultados.js"></script>
 
 </body>

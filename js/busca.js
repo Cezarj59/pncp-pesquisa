@@ -141,6 +141,7 @@ const MotorBusca = (() => {
         aplicarFiltros = null,
         aoProgresso = null,
         sinal = null,
+        paginaInicial = 1,
         politica = POLITICA
     }) {
         const inicio = Date.now();
@@ -152,7 +153,8 @@ const MotorBusca = (() => {
         let parouPor = 'inicio';
         let completou = true;
 
-        for (let pagina = 1; pagina <= politica.maxPaginas; pagina++) {
+        for (let indice = 0; indice < politica.maxPaginas; indice++) {
+            const pagina = paginaInicial + indice;
             if (sinal && sinal.aborted) {
                 parouPor = 'cancelada';
                 completou = false;
@@ -231,7 +233,7 @@ const MotorBusca = (() => {
                 break;
             }
 
-            if (pagina < politica.maxPaginas) {
+            if (indice < politica.maxPaginas - 1) {
                 try {
                     await esperar(politica.intervaloMs, sinal);
                 } catch (_) {

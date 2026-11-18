@@ -16,7 +16,7 @@ Pronto para GitHub Pages.
 | `editais.html` | filtros de contratações publicadas |
 | `atas.html` | filtros de atas de registro de preços |
 | `contratos.html` | filtros de contratos e empenhos |
-| `resultados.html` | recebe os filtros e lista os registros |
+| `resultados.html` | lista os registros, com ordenação, exportação CSV e "buscar mais" |
 | `detalhe.html` | dados completos, documentos e preços por item |
 
 ## Como funciona
@@ -122,12 +122,29 @@ pncp-demo/
 ├── detalhe.html
 ├── css/
 │   └── estilo.css
-└── js/
-    ├── api.js         cliente da API do PNCP
-    ├── filtros.js     configuração e renderização dos filtros
-    ├── resultados.js  busca, filtragem e listagem
-    └── detalhe.js     dados, documentos, itens e preços
+├── js/
+│   ├── api.js         cliente da API do PNCP
+│   ├── busca.js       motor: paginação, cache, retentativa, disjuntor
+│   ├── filtros.js     configuração e renderização dos filtros
+│   ├── relatorio.js   geração do CSV
+│   ├── resultados.js  orquestra busca, filtros, ordenação e listagem
+│   └── detalhe.js     dados, documentos, itens e preços
+└── tests/
+    ├── api.test.js
+    └── busca.test.js
 ```
+
+## Testes
+
+Sem dependências — basta o Node instalado:
+
+```bash
+node tests/busca.test.js
+node tests/api.test.js
+```
+
+Cobrem as decisões do motor (alvo, teto, falha parcial, cache, cancelamento,
+página inicial) e a conversão de `item_url` em endpoint e link do portal.
 
 ## Créditos
 

@@ -126,7 +126,23 @@ function renderDados(entidade) {
     area.innerHTML = `<div class="dados">${linhas.concat(objetos).join('')}</div>`;
 }
 
-function renderArquivos(lista) {
+/**
+ * Monta o endereço de download do documento.
+ * O campo `url` da API aponta para /pncp-api/..., que costuma falhar;
+ * o caminho /api/pncp/.../arquivos/{n} é o que responde de fato.
+ */
+function linkDocumento(itemUrl, doc) {
+    const caminho = PNCP.apiPath(itemUrl);
+    const sequencial = doc.sequencialDocumento;
+
+    if (caminho && sequencial) {
+        return `https://pncp.gov.br/api/pncp/v1${caminho}/arquivos/${sequencial}`;
+    }
+
+    return doc.url || doc.uri || '#';
+}
+
+function renderArquivos(lista, itemUrl) {
     const area = document.getElementById('arquivos');
 
     if (!lista.length) {
@@ -135,7 +151,7 @@ function renderArquivos(lista) {
     }
 
     area.innerHTML = `<ul class="docs">${lista.map(doc => {
-        const link = doc.url || doc.uri || '#';
+        const link = linkDocumento(itemUrl, doc);
         const titulo = doc.titulo || 'Documento';
         const tipo = doc.tipoDocumentoNome || '';
         return `<li>
@@ -157,8 +173,8 @@ function renderItens(itens, itemUrl) {
 
     let html = `<div class="tabela-wrap"><table>
         <thead><tr>
-            <th>#</th><th>Descrição</th><th>Qtd.</th><th>Unit. estimado</th>
-            <th>Resultado</th><th></th>
+            <th scope="col">#</th><th scope="col">Descrição</th><th scope="col">Qtd.</th>
+            <th scope="col">Unit. estimado</th><th scope="col">Resultado</th><th scope="col"></th>
         </tr></thead><tbody>`;
 
     itens.forEach(item => {
@@ -179,7 +195,7 @@ function renderItens(itens, itemUrl) {
             <td class="num">${estimado}</td>
             <td>${situacao}</td>
             <td>${item.temResultado
-                ? `<button class="mini" onclick="verPrecos(this, '${escapar(itemUrl)}', ${Number(item.numeroItem)})">Preços</button>`
+                ? `<button class="mini" data-precos="1" data-url="${escapar(itemUrl)}" data-item="${Number(item.numeroItem)}">Preços</button>`
                 : ''}</td>
         </tr>`;
 
@@ -397,7 +413,7 @@ function alternarDocumentos() {
         marcador: 'documentos',
         rotulo: 'documentos',
         carregar: () => PNCP.arquivos(itemUrlAtual),
-        render: renderArquivos
+        render: lista => renderArquivos(lista, itemUrlAtual)
     });
 }
 
@@ -442,6 +458,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const botao = document.getElementById(id);
         if (botao) botao.addEventListener('click', acao);
     });
+
+    // Delegação: os botões de preço nascem depois, junto com a tabela
+    const areaItens = document.getElementById('itens');
+    if (areaItens) {
+        areaItens.addEventListener('click', evento => {
+            const botao = evento.target.closest('button[data-precos]');
+            if (!botao) return;
+            verPrecos(botao, botao.dataset.url, Number(botao.dataset.item));
+        });
+    }
 
     carregar();
 });

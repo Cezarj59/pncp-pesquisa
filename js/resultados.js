@@ -1,6 +1,8 @@
 /* ====== Página de resultados ====== */
 
 const POR_PAGINA = 20;
+const CHAVE_CACHE = 'pncp:ultima-busca';
+const CACHE_TTL = 5 * 60 * 1000;
 
 let estado = {
     tipo: 'edital',
@@ -8,9 +10,13 @@ let estado = {
     todos: [],
     filtrados: [],
     pagina: 1,
-    analisados: 0,
-    totalPncp: 0
+    ordenacao: 'data',
+    proximaPagina: 1,
+    parouPor: 'inicio',
+    completou: true
 };
+
+let controladorBusca = null;
 
 /* ---------- utilidades ---------- */
 
@@ -54,7 +60,61 @@ function escapar(v) {
     })[c]);
 }
 
+function dataEmMs(item) {
+    const v = item.data_publicacao_pncp || item.data_assinatura;
+    const d = v ? new Date(v) : null;
+    return d && !Number.isNaN(d.getTime()) ? d.getTime() : 0;
+}
+
+/** Valor usado para exibir e ordenar. */
+function valorPrincipal(item) {
+    const estimado = numero(item.valor_total_estimado) || 0;
+    const homologado = numero(item.valor_total_homologado) || 0;
+    const global = numero(item.valor_global) || 0;
+
+    return estado.tipo === 'contrato'
+        ? (global || homologado)
+        : (estimado || homologado);
+}
+
 /* ---------- filtros sobre os registros carregados ---------- */
+
+function situacaoOk(situacao, item) {
+    if (!situacao) return true;
+    return contem(item.situacao_nome, situacao);
+}
+
+/**
+ * Situação da disputa, deduzida das datas de recebimento de propostas.
+ * O PNCP não expõe esse estado como filtro; ele é calculado aqui.
+ */
+function statusOk(status, item) {
+    if (!status) return true;
+
+    if (status === 'homologadas') {
+        return item.tem_resultado === true;
+    }
+
+    const agora = new Date();
+
+    const inicio = item.data_inicio_recebimento_propostas
+        ? new Date(item.data_inicio_recebimento_propostas) : null;
+
+    const fim = item.data_fim_recebimento_propostas
+        ? new Date(item.data_fim_recebimento_propostas) : null;
+
+    if (status === 'encerradas') {
+        return fim !== null && !Number.isNaN(fim.getTime()) && fim < agora;
+    }
+
+    if (status === 'recebendo') {
+        if (!inicio || !fim) return false;
+        if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) return false;
+        return agora >= inicio && agora <= fim;
+    }
+
+    return true;
+}
 
 function aplicarFiltros(itens) {
     const p = estado.params;
@@ -64,6 +124,7 @@ function aplicarFiltros(itens) {
         .split(',')
         .map(uf => uf.trim().toUpperCase())
         .filter(Boolean);
+
     const municipio = p.get('municipio');
     const orgao = p.get('orgao');
     const esfera = p.get('esfera');
@@ -119,14 +180,7 @@ function aplicarFiltros(itens) {
 
         // Só registros cujo valor esteja realmente publicado
         if (comValor === 'sim') {
-            const estimado = numero(item.valor_total_estimado) || 0;
-            const homologado = numero(item.valor_total_homologado) || 0;
-            const global = numero(item.valor_global) || 0;
-
-            const referencia = tipo === 'contrato'
-                ? (global || homologado)
-                : (estimado || homologado);
-
+            const referencia = valorPrincipal(item);
             if (referencia <= 0) return false;
         }
 
@@ -142,43 +196,25 @@ function aplicarFiltros(itens) {
     });
 }
 
-function situacaoOk(situacao, item) {
-    if (!situacao) return true;
-    return contem(item.situacao_nome, situacao);
-}
+/* ---------- ordenação ---------- */
 
-/**
- * Situação da disputa, deduzida das datas de recebimento de propostas.
- * O PNCP não expõe esse estado como filtro; ele é calculado aqui.
- */
-function statusOk(status, item) {
-    if (!status) return true;
+function aplicarOrdenacao(lista) {
+    const copia = lista.slice();
 
-    if (status === 'homologadas') {
-        return item.tem_resultado === true;
+    switch (estado.ordenacao) {
+        case 'valor-desc':
+            return copia.sort((a, b) => valorPrincipal(b) - valorPrincipal(a));
+
+        case 'valor-asc':
+            return copia.sort((a, b) => valorPrincipal(a) - valorPrincipal(b));
+
+        case 'orgao':
+            return copia.sort((a, b) =>
+                normalizar(a.orgao_nome).localeCompare(normalizar(b.orgao_nome), 'pt-BR'));
+
+        default:
+            return copia.sort((a, b) => dataEmMs(b) - dataEmMs(a));
     }
-
-    const agora = new Date();
-
-    const inicio = item.data_inicio_recebimento_propostas
-        ? new Date(item.data_inicio_recebimento_propostas) : null;
-
-    const fim = item.data_fim_recebimento_propostas
-        ? new Date(item.data_fim_recebimento_propostas) : null;
-
-    if (status === 'encerradas') {
-        return fim !== null
-            && !Number.isNaN(fim.getTime())
-            && fim < agora;
-    }
-
-    if (status === 'recebendo') {
-        if (!inicio || !fim) return false;
-        if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) return false;
-        return agora >= inicio && agora <= fim;
-    }
-
-    return true;
 }
 
 /* ---------- render ---------- */
@@ -230,15 +266,15 @@ function renderizarTabela() {
     const colunas = COLUNAS[estado.tipo];
 
     let html = `<div class="tabela-wrap"><table><thead><tr>${
-        colunas.map(c => `<th>${c}</th>`).join('')
+        colunas.map(c => `<th scope="col">${c}</th>`).join('')
     }</tr></thead><tbody>`;
 
     itens.forEach(item => {
         const link = `detalhe.html?u=${encodeURIComponent(item.item_url || '')}`;
         const acao = `<td><a class="link" href="${link}">Detalhes →</a></td>`;
 
-        // Guarda o registro para a página de detalhe conseguir exibir
-        // ao menos o resumo, caso a API recuse a consulta.
+        // Guarda o registro para a página de detalhe exibir ao menos o
+        // resumo, caso a API recuse a consulta.
         try {
             sessionStorage.setItem(`pncp:${item.item_url || ''}`, JSON.stringify(item));
         } catch (_) { /* armazenamento indisponível */ }
@@ -265,9 +301,140 @@ function irPara(pagina) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/* ---------- carga ---------- */
+/* ---------- exportação ---------- */
 
-let controladorBusca = null;
+const CABECALHOS = {
+    edital: ['Objeto', 'Órgão', 'Município', 'UF', 'Modalidade', 'Situação',
+             'Valor estimado', 'Valor homologado', 'Publicação', 'Link PNCP'],
+    ata: ['Objeto', 'Órgão', 'Município', 'UF', 'Vigência início', 'Vigência fim',
+          'Permite adesão', 'Assinatura', 'Link PNCP'],
+    contrato: ['Objeto', 'Fornecedor', 'CNPJ fornecedor', 'Órgão', 'Município', 'UF',
+               'Valor global', 'Assinatura', 'Link PNCP']
+};
+
+function linhaCsv(tipo, item) {
+    const link = PNCP.linkPortal(item.item_url) || '';
+
+    if (tipo === 'ata') {
+        return [
+            item.description || item.title || '',
+            item.orgao_nome || '',
+            item.municipio_nome || '',
+            item.uf || '',
+            item.vigencia_inicio || '',
+            item.vigencia_fim || '',
+            item.possibilidade_adesao ? 'Sim' : 'Não',
+            item.data_assinatura || '',
+            link
+        ];
+    }
+
+    if (tipo === 'contrato') {
+        return [
+            item.description || item.title || '',
+            item.fornecedor_nome || '',
+            item.fornecedor_ni || '',
+            item.orgao_nome || '',
+            item.municipio_nome || '',
+            item.uf || '',
+            item.valor_global ?? '',
+            item.data_assinatura || '',
+            link
+        ];
+    }
+
+    return [
+        item.description || item.title || '',
+        item.orgao_nome || '',
+        item.municipio_nome || '',
+        item.uf || '',
+        item.modalidade_licitacao_nome || '',
+        item.situacao_nome || '',
+        item.valor_total_estimado ?? '',
+        item.valor_total_homologado ?? '',
+        item.data_publicacao_pncp || '',
+        link
+    ];
+}
+
+function exportarCsv() {
+    if (!estado.filtrados.length) return;
+
+    const tipo = estado.tipo;
+    const linhas = estado.filtrados.map(item => linhaCsv(tipo, item));
+
+    Relatorio.baixarCsv(
+        Relatorio.nomeArquivo(tipo, estado.params.get('q')),
+        CABECALHOS[tipo],
+        linhas
+    );
+}
+
+/* ---------- cache da última busca ---------- */
+
+function salvarCache() {
+    try {
+        sessionStorage.setItem(CHAVE_CACHE, JSON.stringify({
+            chave: window.location.search,
+            quando: Date.now(),
+            itens: estado.todos,
+            proximaPagina: estado.proximaPagina,
+            parouPor: estado.parouPor
+        }));
+    } catch (_) {
+        // Cota do sessionStorage: seguir sem cache
+    }
+}
+
+function restaurarCache() {
+    try {
+        const bruto = sessionStorage.getItem(CHAVE_CACHE);
+        if (!bruto) return false;
+
+        const dados = JSON.parse(bruto);
+
+        if (dados.chave !== window.location.search) return false;
+        if (Date.now() - dados.quando > CACHE_TTL) return false;
+        if (!Array.isArray(dados.itens)) return false;
+
+        estado.todos = dados.itens;
+        estado.proximaPagina = dados.proximaPagina || 1;
+        estado.parouPor = dados.parouPor || 'fim';
+        estado.filtrados = aplicarOrdenacao(aplicarFiltros(estado.todos));
+        estado.pagina = 1;
+
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+/* ---------- mensagens ---------- */
+
+function mensagemResultado(brutos, filtrados, completou) {
+    if (filtrados === 0) {
+        if (brutos > 0) {
+            return `<div class="aviso">Nenhum resultado com esses filtros.
+                Foram encontrados ${brutos} registros no período, mas nenhum atende
+                ao que foi pedido. Tente ampliar os filtros.</div>`;
+        }
+
+        return completou
+            ? `<div class="aviso">Nenhum resultado encontrado.
+               Tente outra palavra-chave, aumente o período ou escolha
+               "Todas" em Situação da disputa.</div>`
+            : `<div class="aviso erro">Não foi possível concluir a busca agora.
+               Tente novamente em alguns instantes.</div>`;
+    }
+
+    const texto = filtrados === 1 ? '1 resultado encontrado' : `${filtrados} resultados encontrados`;
+
+    return completou
+        ? `<div class="aviso ok">${texto}.</div>`
+        : `<div class="aviso ok">${texto}. A busca foi interrompida antes do fim.</div>`;
+}
+
+/* ---------- busca ---------- */
 
 async function carregar() {
     const status = document.getElementById('status');
@@ -288,7 +455,15 @@ async function carregar() {
         homologadas: 'encerradas'
     }[params.get('status')] || null;
 
-    // Cancela busca anterior, se ainda estiver em andamento
+    // Voltando do detalhe: reaproveita o resultado recente
+    if (restaurarCache()) {
+        status.innerHTML = mensagemResultado(
+            estado.todos.length, estado.filtrados.length, estado.completou);
+        renderizarTabela();
+        atualizarBotaoBuscarMais();
+        return;
+    }
+
     if (controladorBusca) controladorBusca.abort();
     controladorBusca = new AbortController();
 
@@ -305,7 +480,7 @@ async function carregar() {
             aplicarFiltros,
             aoProgresso: ({ filtrados }) => {
                 const agora = Date.now();
-                if (agora - ultimoAviso < 400) return;   // evita piscar
+                if (agora - ultimoAviso < 400) return;
                 ultimoAviso = agora;
 
                 status.innerHTML = `<div class="aviso"><span class="carregando"></span>
@@ -314,33 +489,20 @@ async function carregar() {
         });
 
         estado.todos = resultado.itens;
-        estado.analisados = resultado.itens.length;
-        estado.filtrados = aplicarFiltros(resultado.itens);
+        estado.proximaPagina = resultado.paginasLidas + 1;
+        estado.parouPor = resultado.parouPor;
+        estado.completou = resultado.completou;
+        estado.filtrados = aplicarOrdenacao(aplicarFiltros(resultado.itens));
         estado.pagina = 1;
 
-        const total = estado.filtrados.length;
-
-        if (total === 0) {
-            status.innerHTML = resultado.completou
-                ? `<div class="aviso">Nenhum resultado encontrado.
-                   Tente outra palavra-chave, aumente o período ou escolha
-                   "Todas" em Situação da disputa.</div>`
-                : `<div class="aviso erro">Não foi possível concluir a busca agora.
-                   Tente novamente em alguns instantes.</div>`;
-        } else if (!resultado.completou) {
-            status.innerHTML = `<div class="aviso ok">${total === 1
-                ? '1 resultado encontrado'
-                : `${total} resultados encontrados`}. A busca foi interrompida antes do fim.</div>`;
-        } else {
-            status.innerHTML = `<div class="aviso ok">${total === 1
-                ? '1 resultado encontrado.'
-                : `${total} resultados encontrados.`}</div>`;
-        }
+        status.innerHTML = mensagemResultado(
+            resultado.itens.length, estado.filtrados.length, resultado.completou);
 
         renderizarTabela();
+        atualizarBotaoBuscarMais();
+        salvarCache();
 
     } catch (erro) {
-        // Busca substituída por outra: sai em silêncio
         if (erro && erro.name === 'AbortError') return;
 
         document.getElementById('tabela').innerHTML = '';
@@ -350,6 +512,73 @@ async function carregar() {
         </div>`;
     }
 }
+
+function atualizarBotaoBuscarMais() {
+    const botao = document.getElementById('btnBuscarMais');
+    if (!botao) return;
+
+    const podeContinuar = estado.parouPor === 'teto' || estado.parouPor === 'tempo';
+    botao.style.display = podeContinuar ? '' : 'none';
+    botao.disabled = false;
+}
+
+async function continuarBusca() {
+    const status = document.getElementById('status');
+    const botao = document.getElementById('btnBuscarMais');
+    const params = estado.params;
+
+    const termoInformado = (params.get('q') || '').trim();
+    const modalidadeId = params.get('modalidade') || '6';
+    const nomeModalidade = (MODALIDADES.find(m => m[0] === modalidadeId) || [])[1] || '';
+    const termo = termoInformado || nomeModalidade || 'pregão eletrônico';
+
+    const statusApi = {
+        encerradas: 'encerradas',
+        recebendo: 'recebendo_proposta',
+        homologadas: 'encerradas'
+    }[params.get('status')] || null;
+
+    botao.disabled = true;
+    status.innerHTML = '<div class="aviso"><span class="carregando"></span> Buscando mais...</div>';
+
+    if (controladorBusca) controladorBusca.abort();
+    controladorBusca = new AbortController();
+
+    try {
+        const resultado = await MotorBusca.executar({
+            termo,
+            tipo: estado.tipo,
+            status: statusApi,
+            sinal: controladorBusca.signal,
+            paginaInicial: estado.proximaPagina,
+            aplicarFiltros: lista => aplicarFiltros(estado.todos.concat(lista))
+        });
+
+        estado.todos = estado.todos.concat(resultado.itens);
+        estado.proximaPagina += resultado.paginasLidas;
+        estado.parouPor = resultado.parouPor;
+        estado.completou = resultado.completou;
+        estado.filtrados = aplicarOrdenacao(aplicarFiltros(estado.todos));
+        estado.pagina = 1;
+
+        status.innerHTML = mensagemResultado(
+            estado.todos.length, estado.filtrados.length, resultado.completou);
+
+        renderizarTabela();
+        atualizarBotaoBuscarMais();
+        salvarCache();
+
+    } catch (erro) {
+        if (erro && erro.name === 'AbortError') return;
+
+        status.innerHTML = `<div class="aviso erro">
+            Não foi possível buscar mais agora. Tente novamente em instantes.
+        </div>`;
+        botao.disabled = false;
+    }
+}
+
+/* ---------- inicialização ---------- */
 
 document.addEventListener('DOMContentLoaded', () => {
     estado.params = new URLSearchParams(window.location.search);
@@ -363,7 +592,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const voltar = document.getElementById('voltar');
-    if (voltar) voltar.href = `${estado.tipo === 'ata' ? 'atas' : estado.tipo === 'contrato' ? 'contratos' : 'editais'}.html`;
+    if (voltar) {
+        voltar.href = `${estado.tipo === 'ata' ? 'atas' : estado.tipo === 'contrato' ? 'contratos' : 'editais'}.html`;
+    }
+
+    const ordenacao = document.getElementById('ordenacao');
+    if (ordenacao) {
+        ordenacao.value = estado.ordenacao;
+        ordenacao.addEventListener('change', () => {
+            estado.ordenacao = ordenacao.value;
+            estado.filtrados = aplicarOrdenacao(aplicarFiltros(estado.todos));
+            estado.pagina = 1;
+            renderizarTabela();
+        });
+    }
+
+    const exportar = document.getElementById('btnExportar');
+    if (exportar) exportar.addEventListener('click', exportarCsv);
+
+    const buscarMais = document.getElementById('btnBuscarMais');
+    if (buscarMais) buscarMais.addEventListener('click', continuarBusca);
 
     // Abandona a busca em andamento ao sair da página
     window.addEventListener('pagehide', () => {
