@@ -327,7 +327,8 @@ function renderItens(itens, itemUrl) {
                 ${naColeta
                     ? `<button class="mini sec" data-remover-item="1"
                                data-url="${escapar(itemUrl)}"
-                               data-item="${numeroItem}">Remover da coleta</button>`
+                               data-item="${numeroItem}"
+                               title="Remover este item da coleta">Remover</button>`
                     : `<button class="mini" data-adicionar="1"
                                data-url="${escapar(itemUrl)}"
                                data-item="${numeroItem}"

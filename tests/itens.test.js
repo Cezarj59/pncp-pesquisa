@@ -112,7 +112,7 @@ const itens = [
     naColeta = true;
     __renderItens(itens, '/compras/1/2026/2');
     checar('item na coleta oferece remover',
-        el('itens').innerHTML.includes('Remover da coleta'));
+        el('itens').innerHTML.includes('>Remover</button>'));
     checar('não oferece adicionar de novo',
         !el('itens').innerHTML.includes('data-adicionar="1"'));
 

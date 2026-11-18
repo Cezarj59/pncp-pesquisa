@@ -70,7 +70,7 @@ O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcriçã
    mostra o **valor unitário estimado** e, para cada fornecedor, o
    **valor unitário homologado**.
 6. **Adiciona à coleta** apenas os itens que interessam — e, se marcar errado,
-   clica de novo em **Remover da coleta** ali mesmo. Pode voltar, fazer outra
+   clica de novo em **Remover** ali mesmo. Pode voltar, fazer outra
    pesquisa e somar mais itens: a coleta guarda tudo.
 7. Na **Coleta**, revisa, remove o que não serve, e **gera o relatório** (PDF)
    ou exporta a planilha. A coleta exige no mínimo três itens.
