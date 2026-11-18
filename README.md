@@ -146,6 +146,30 @@ node tests/api.test.js
 Cobrem as decisões do motor (alvo, teto, falha parcial, cache, cancelamento,
 página inicial) e a conversão de `item_url` em endpoint e link do portal.
 
+## Verificação automática da API
+
+O repositório inclui um teste de fumaça que roda **todo dia às 06:17 (Brasília)**
+no GitHub Actions:
+
+```bash
+node tests/smoke.js     # também roda localmente
+```
+
+Ele confere se:
+
+- a busca responde HTTP 200;
+- o campo `total` continua numérico e maior que zero;
+- `items` continua sendo lista com registros;
+- os campos essenciais seguem presentes (`orgao_nome`, `uf`, `data_publicacao_pncp`, `orgao_cnpj`, `numero_sequencial`);
+- o detalhe de uma contratação ainda responde.
+
+Se falhar, o workflow **abre uma issue automaticamente** (sem duplicar se já
+existir uma aberta). O detalhe é tratado como aviso quando o motivo é limite de
+requisições ou registro recém-publicado — nesses casos não é mudança de contrato.
+
+Se a issue aparecer, **reexecute antes de investigar**: o PNCP bloqueia
+temporariamente endereços com muitas chamadas.
+
 ## Créditos
 
 Dados: [Portal Nacional de Contratações Públicas](https://pncp.gov.br).

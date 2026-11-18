@@ -1,0 +1,63 @@
+name: Verificação do PNCP
+
+# Roda todo dia às 09:17 UTC (06:17 em Brasília), horário de baixo uso.
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  smoke:
+    name: API do PNCP
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar o Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verificar busca e detalhe
+        id: verificar
+        run: node tests/smoke.js
+
+      - name: Abrir issue se a verificação falhar
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          titulo="PNCP: a API mudou ou está fora do ar"
+
+          existente=$(gh issue list --state open --search "$titulo" --json number --jq 'length')
+
+          if [ "$existente" -gt 0 ]; then
+            echo "Já existe issue aberta sobre isso; não vou duplicar."
+            exit 0
+          fi
+
+          gh issue create \
+            --title "$titulo" \
+            --body "$(printf '%s\n' \
+              'A verificação automática da API do PNCP falhou.' \
+              '' \
+              "Execução com detalhes: $RUN_URL" \
+              '' \
+              '**Antes de investigar, reexecute:** aba Actions → “Verificação do PNCP” → “Run workflow”.' \
+              'O PNCP bloqueia temporariamente endereços que fazem muitas chamadas, e um alarme isolado costuma ser isso.' \
+              '' \
+              'Se falhar de novo, verificar:' \
+              '1. Ler a saída de `node tests/smoke.js` na execução.' \
+              '2. Abrir https://pncp.gov.br/app/editais e confirmar se o portal está no ar.' \
+              '3. Se o portal funciona mas o script falha, o endpoint ou o formato mudou.' \
+              '4. O conserto fica em `js/api.js` (URL e parâmetros) e no mapeamento de campos.' \
+              '' \
+              'Fechar esta issue depois de corrigir.')"
