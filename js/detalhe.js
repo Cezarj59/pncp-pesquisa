@@ -324,12 +324,14 @@ function renderItens(itens, itemUrl) {
                 ${item.temResultado
                     ? `<button class="mini" data-precos="1" data-url="${escapar(itemUrl)}" data-item="${numeroItem}">Preços</button>`
                     : ''}
-                <button class="mini" data-adicionar="1"
-                        data-url="${escapar(itemUrl)}"
-                        data-item="${numeroItem}"
-                        ${naColeta || !podeAdicionar ? 'disabled' : ''}>
-                    ${naColeta ? 'Na coleta ✓' : 'Adicionar'}
-                </button>
+                ${naColeta
+                    ? `<button class="mini sec" data-remover-item="1"
+                               data-url="${escapar(itemUrl)}"
+                               data-item="${numeroItem}">Remover da coleta</button>`
+                    : `<button class="mini" data-adicionar="1"
+                               data-url="${escapar(itemUrl)}"
+                               data-item="${numeroItem}"
+                               ${podeAdicionar ? '' : 'disabled'}>Adicionar</button>`}
             </td>
         </tr>`;
 
@@ -472,7 +474,7 @@ async function verPrecos(botao, itemUrl, numeroItem) {
     }
 }
 
-/** Adiciona o item à coleta de preços. */
+/** Adiciona o item à coleta ativa. */
 async function adicionarItem(botao) {
     const itemUrl = botao.dataset.url;
     const numeroItem = Number(botao.dataset.item);
@@ -514,8 +516,8 @@ async function adicionarItem(botao) {
         });
 
         if (resultado.ok || resultado.motivo === 'repetido') {
-            botao.textContent = 'Na coleta ✓';
-            botao.disabled = true;
+            // Redesenha a tabela: o botão vira "Remover da coleta"
+            renderItens(itensCarregados, itemUrlAtual);
         } else {
             botao.textContent = textoOriginal;
             botao.disabled = false;
@@ -529,6 +531,18 @@ async function adicionarItem(botao) {
     }
 
     atualizarLinkColeta();
+}
+
+/** Remove o item da coleta ativa, direto da tabela de itens. */
+function removerDaColeta(botao) {
+    const ativa = Coleta.ativa();
+    if (!ativa) return;
+
+    const chave = Coleta.chaveDe(botao.dataset.url, Number(botao.dataset.item));
+    Coleta.removerItem(ativa.id, chave);
+
+    // Redesenha: o botão volta para "Adicionar"
+    renderItens(itensCarregados, itemUrlAtual);
 }
 
 /** Mostra a quantidade de itens da coleta no topo da página. */
@@ -779,6 +793,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const precos = evento.target.closest('button[data-precos]');
             if (precos) {
                 verPrecos(precos, precos.dataset.url, Number(precos.dataset.item));
+                return;
+            }
+
+            const remover = evento.target.closest('button[data-remover-item]');
+            if (remover) {
+                removerDaColeta(remover);
                 return;
             }
 

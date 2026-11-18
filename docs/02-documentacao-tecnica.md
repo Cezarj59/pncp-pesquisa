@@ -197,6 +197,9 @@ do item:
 - a coleta **sobrevive** a novas pesquisas, recarregar a página e fechar a aba;
 - um item já adicionado não duplica: a segunda tentativa é recusada com
   `motivo: 'repetido'`;
+- o botão **Adicionar** do detalhe funciona como interruptor: depois de
+  adicionar vira **Remover da coleta** e apaga o item da coleta ativa ali
+  mesmo, sem exigir ir à página de coletas;
 - a leitura é tolerante a dado corrompido (retorna lista vazia).
 
 #### Preço estimado e preço homologado
@@ -298,13 +301,13 @@ Apenas valores maiores que zero entram na conta.
 node tests/busca.test.js          # 13 verificações
 node tests/api.test.js            # 11
 node tests/detalhe.test.js        #  8
-node tests/itens.test.js          # 22
+node tests/itens.test.js          # 26
 node tests/coleta.test.js         # 43
 node tests/coleta-pagina.test.js  # 21
 node tests/relatorio.test.js      # 24
 ```
 
-**Total: 142 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
+**Total: 146 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
 `fetch` simulado — testam o código real, não uma cópia.
 
 ### 8.2 Verificação diária

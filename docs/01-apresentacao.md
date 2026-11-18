@@ -69,8 +69,9 @@ O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcriçã
 5. **Abre o detalhe** de uma contratação e clica em **Preços** no item: o painel
    mostra o **valor unitário estimado** e, para cada fornecedor, o
    **valor unitário homologado**.
-6. **Adiciona à coleta** apenas os itens que interessam. Pode voltar, fazer
-   outra pesquisa e somar mais itens — a coleta guarda tudo.
+6. **Adiciona à coleta** apenas os itens que interessam — e, se marcar errado,
+   clica de novo em **Remover da coleta** ali mesmo. Pode voltar, fazer outra
+   pesquisa e somar mais itens: a coleta guarda tudo.
 7. Na **Coleta**, revisa, remove o que não serve, e **gera o relatório** (PDF)
    ou exporta a planilha. A coleta exige no mínimo três itens.
 
@@ -183,7 +184,7 @@ integração:
 
 | Item | Número |
 |---|---|
-| Verificações automatizadas | 142 |
+| Verificações automatizadas | 146 |
 | Suítes de teste | 7 |
 | Verificação diária da API | 1 (GitHub Actions) |
 | Telas | 8 |

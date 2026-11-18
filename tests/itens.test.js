@@ -44,11 +44,15 @@ globalThis.sessionStorage = {
 globalThis.window = { location: { search: '' } };
 
 let naColeta = false;
+let removidos = [];
+
 globalThis.Coleta = {
     contem: () => naColeta,
     adicionar: () => ({ ok: true }),
-    total: () => (naColeta ? 1 : 0),
     ativa: () => ({ id: 'c1', nome: 'Coleta de teste', itens: [] }),
+    removerItem: (id, chave) => { removidos.push({ id, chave }); return true; },
+    chaveDe: (url, n) => `${url}#${n}`,
+    total: () => (naColeta ? 1 : 0),
     MINIMO: 3
 };
 
@@ -70,7 +74,8 @@ eval(fs.readFileSync(path.join(RAIZ, 'js/detalhe.js'), 'utf8')
     + '\n;globalThis.__definirContexto = definirContexto;'
     + '\n;globalThis.__precos = precosPorItem;'
     + '\n;globalThis.__carregarPrecos = carregarPrecos;'
-    + '\n;globalThis.__verPrecos = verPrecos;');
+    + '\n;globalThis.__verPrecos = verPrecos;'
+    + '\n;globalThis.__removerDaColeta = removerDaColeta;');
 
 let falhas = 0;
 function checar(rotulo, condicao, extra) {
@@ -106,7 +111,18 @@ const itens = [
 
     naColeta = true;
     __renderItens(itens, '/compras/1/2026/2');
-    checar('item na coleta mostra "Na coleta"', el('itens').innerHTML.includes('Na coleta'));
+    checar('item na coleta oferece remover',
+        el('itens').innerHTML.includes('Remover da coleta'));
+    checar('não oferece adicionar de novo',
+        !el('itens').innerHTML.includes('data-adicionar="1"'));
+
+    removidos = [];
+    __removerDaColeta({ dataset: { url: '/compras/1/2026/2', item: '1' } });
+    checar('remove da coleta ativa', removidos.length === 1, `(${removidos.length})`);
+    checar('remove o item certo', removidos[0] && removidos[0].chave === '/compras/1/2026/2#1',
+        removidos[0] && removidos[0].chave);
+    checar('remove da coleta correta', removidos[0] && removidos[0].id === 'c1');
+
     naColeta = false;
 
     __definirContexto({ orgao_nome: 'Prefeitura de Colombo', municipio_nome: 'Colombo',

@@ -174,7 +174,8 @@ A unidade da pesquisa é o **item**, não a contratação. Muitas vezes o técni
 aproveita um único item de uma compra.
 
 1. Na lista de resultados, abra o **detalhe** de uma contratação.
-2. Em **Itens e preços**, clique em **Adicionar** no item desejado.
+2. Em **Itens e preços**, clique em **Adicionar** no item desejado. O botão
+   vira **Remover da coleta** — clique de novo para desfazer, sem sair da tela.
 3. Pode voltar, fazer **outra pesquisa** e adicionar mais itens — tudo fica em
    `localStorage`, então sobrevive a recarregar a página e a fechar a aba.
 4. Em **Coleta** (no topo), revise, remova o que não serve e gere o documento.
