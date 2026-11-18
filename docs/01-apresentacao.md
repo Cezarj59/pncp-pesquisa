@@ -184,8 +184,8 @@ integração:
 
 | Item | Número |
 |---|---|
-| Verificações automatizadas | 161 |
-| Suítes de teste | 8 |
+| Verificações automatizadas | 185 |
+| Suítes de teste | 9 |
 | Verificação diária da API | 1 (GitHub Actions) |
 | Telas | 8 |
 | Linhas de código | cerca de 3900 |

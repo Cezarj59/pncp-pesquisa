@@ -458,3 +458,18 @@ table.precos-tabela td { padding: 6px 8px; }
 @media print {
     .botao-topo { display: none; }
 }
+
+/* ---------- retomar pesquisa ---------- */
+
+.retomar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.retomar .botao {
+    padding: 6px 12px;
+    font-size: 12px;
+}

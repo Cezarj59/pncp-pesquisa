@@ -2,7 +2,7 @@
 
 const POR_PAGINA = 20;
 const CHAVE_CACHE = 'pncp:ultima-busca';
-const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_TTL = 60 * 60 * 1000;
 
 let estado = {
     tipo: 'edital',
@@ -315,6 +315,18 @@ function salvarCache() {
     }
 }
 
+/** Guarda o ponteiro da última pesquisa, para retomá-la em outra página. */
+function guardarPonteiro(termo) {
+    if (typeof Retomar === 'undefined') return;
+
+    Retomar.salvar({
+        url: window.location.search,
+        termo: termo || '',
+        total: estado.filtrados.length,
+        tipo: estado.tipo
+    });
+}
+
 function restaurarCache() {
     try {
         const bruto = sessionStorage.getItem(CHAVE_CACHE);
@@ -430,6 +442,7 @@ async function carregar() {
         renderizarTabela();
         atualizarBotaoBuscarMais();
         salvarCache();
+        guardarPonteiro(termoInformado);
 
     } catch (erro) {
         if (erro && erro.name === 'AbortError') return;
@@ -496,6 +509,7 @@ async function continuarBusca() {
         renderizarTabela();
         atualizarBotaoBuscarMais();
         salvarCache();
+        guardarPonteiro(termoInformado);
 
     } catch (erro) {
         if (erro && erro.name === 'AbortError') return;

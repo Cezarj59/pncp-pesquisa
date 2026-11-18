@@ -287,6 +287,7 @@ Apenas valores maiores que zero entram na conta.
 | `js/coleta.js` | 87 | armazenamento da coleta em `localStorage` |
 | `js/coleta-pagina.js` | 258 | página da coleta: lista, resumo, CSV e relatório |
 | `js/topo.js` | 84 | botão voltar ao topo |
+| `js/retomar.js` | 138 | ponteiro da última pesquisa, aviso de retomar |
 | `js/relatorio.js` | 52 | geração do CSV |
 | `js/relatorio-pesquisa.js` | 213 | documento imprimível |
 | `css/estilo.css` | 377 | interface |
@@ -307,9 +308,10 @@ node tests/coleta.test.js         # 43
 node tests/coleta-pagina.test.js  # 21
 node tests/relatorio.test.js      # 24
 node tests/topo.test.js            # 15
+node tests/retomar.test.js         # 24
 ```
 
-**Total: 161 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
+**Total: 185 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
 `fetch` simulado — testam o código real, não uma cópia.
 
 ### 8.2 Verificação diária

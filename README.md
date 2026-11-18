@@ -137,6 +137,7 @@ pncp-demo/
 │   ├── relatorio-pesquisa.js documento imprimível de pesquisa de preços
 │   ├── resultados.js         orquestra busca, filtros, ordenação e listagem
 │   ├── topo.js               botão voltar ao topo
+│   ├── retomar.js            ponteiro da última pesquisa
 │   ├── coleta-pagina.js       página da coleta: lista, resumo, CSV e relatório
 │   └── detalhe.js            dados, documentos, itens, preços e coleta
 └── tests/
@@ -147,7 +148,8 @@ pncp-demo/
     ├── coleta.test.js
     ├── coleta-pagina.test.js
     ├── relatorio.test.js
-    └── topo.test.js
+    ├── topo.test.js
+    └── retomar.test.js
 ```
 
 ## Testes
@@ -163,6 +165,7 @@ node tests/coleta.test.js
 node tests/coleta-pagina.test.js
 node tests/relatorio.test.js
 node tests/topo.test.js
+node tests/retomar.test.js
 ```
 
 Cobrem as decisões do motor (alvo, teto, falha parcial, cache, cancelamento,
