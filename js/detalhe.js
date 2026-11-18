@@ -356,94 +356,71 @@ async function carregar() {
 
 /* ---------- carga sob demanda ---------- */
 
-async function alternarDocumentos() {
-    const botao = document.getElementById('btnDocumentos');
-    const area = document.getElementById('arquivos');
+/**
+ * Primeiro clique: carrega e mostra.
+ * Cliques seguintes: apenas alternam entre mostrar e ocultar.
+ */
 
-    if (area.style.display === 'none') {
-        area.style.display = '';
-        botao.textContent = 'Ocultar documentos';
-        return;
-    }
+async function alternarConteudo({ botaoId, areaId, marcador, rotulo, carregar, render }) {
+    const botao = document.getElementById(botaoId);
+    const area = document.getElementById(areaId);
+    if (!botao || !area) return;
 
-    if (jaCarregado.documentos) {
-        area.style.display = 'none';
-        botao.textContent = 'Ver documentos';
+    const oculto = area.style.display === 'none';
+
+    if (jaCarregado[marcador]) {
+        area.style.display = oculto ? '' : 'none';
+        botao.textContent = oculto ? `Ocultar ${rotulo}` : `Ver ${rotulo}`;
         return;
     }
 
     botao.disabled = true;
-    area.innerHTML = '<p><span class="carregando"></span> Carregando documentos...</p>';
+    area.style.display = '';
+    area.innerHTML = `<p><span class="carregando"></span> Carregando ${rotulo}...</p>`;
 
     try {
-        renderArquivos(await PNCP.arquivos(itemUrlAtual));
-        jaCarregado.documentos = true;
-        botao.textContent = 'Ocultar documentos';
+        render(await carregar());
+        jaCarregado[marcador] = true;
+        botao.textContent = `Ocultar ${rotulo}`;
     } catch (erro) {
         area.innerHTML = `<div class="aviso erro">${escapar(mensagemErro(erro))}</div>`;
+        botao.textContent = `Ver ${rotulo}`;
     } finally {
         botao.disabled = false;
     }
 }
 
-async function alternarItens() {
-    const botao = document.getElementById('btnItens');
-    const area = document.getElementById('itens');
-
-    if (area.style.display === 'none') {
-        area.style.display = '';
-        botao.textContent = 'Ocultar itens';
-        return;
-    }
-
-    if (jaCarregado.itens) {
-        area.style.display = 'none';
-        botao.textContent = 'Ver itens e preços';
-        return;
-    }
-
-    botao.disabled = true;
-    area.innerHTML = '<p><span class="carregando"></span> Carregando itens...</p>';
-
-    try {
-        renderItens(await PNCP.itens(itemUrlAtual), itemUrlAtual);
-        jaCarregado.itens = true;
-        botao.textContent = 'Ocultar itens';
-    } catch (erro) {
-        area.innerHTML = `<div class="aviso erro">${escapar(mensagemErro(erro))}</div>`;
-    } finally {
-        botao.disabled = false;
-    }
+function alternarDocumentos() {
+    return alternarConteudo({
+        botaoId: 'btnDocumentos',
+        areaId: 'arquivos',
+        marcador: 'documentos',
+        rotulo: 'documentos',
+        carregar: () => PNCP.arquivos(itemUrlAtual),
+        render: renderArquivos
+    });
 }
 
-async function alternarTermos() {
-    const botao = document.getElementById('btnTermos');
-    const area = document.getElementById('termos');
+function alternarItens() {
+    return alternarConteudo({
+        botaoId: 'btnItens',
+        areaId: 'itens',
+        marcador: 'itens',
+        rotulo: 'itens e preços',
+        carregar: () => PNCP.itens(itemUrlAtual),
+        render: lista => renderItens(lista, itemUrlAtual)
+    });
+}
 
-    if (area.style.display === 'none') {
-        area.style.display = '';
-        botao.textContent = 'Ocultar termos';
-        return;
-    }
-
-    if (jaCarregado.termos) {
-        area.style.display = 'none';
-        botao.textContent = 'Ver termos';
-        return;
-    }
-
-    botao.disabled = true;
-    area.innerHTML = '<p><span class="carregando"></span> Carregando termos...</p>';
-
-    try {
-        renderTermos(await PNCP.termos(itemUrlAtual));
-        jaCarregado.termos = true;
-        botao.textContent = 'Ocultar termos';
-    } catch (erro) {
-        area.innerHTML = `<div class="aviso erro">${escapar(mensagemErro(erro))}</div>`;
-    } finally {
-        botao.disabled = false;
-    }
+function alternarTermos() {
+    return alternarConteudo({
+        botaoId: 'btnTermos',
+        areaId: 'termos',
+        marcador: 'termos',
+        rotulo: 'termos',
+        carregar: () => PNCP.termos(itemUrlAtual),
+        render: renderTermos
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
