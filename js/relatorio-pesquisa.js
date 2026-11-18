@@ -6,7 +6,7 @@ const RelatorioPesquisa = (() => {
         edital: 'Editais (contratações publicadas)',
         ata: 'Atas de registro de preços',
         contrato: 'Contratos',
-        cesta: 'Cesta de pesquisa (itens selecionados)'
+        coleta: 'Coleta de preços (itens selecionados)'
     };
 
     /* ---------- cálculos ---------- */
@@ -83,7 +83,7 @@ const RelatorioPesquisa = (() => {
 
         const resumo = estat ? `
             <table class="valores">
-                <tr><th>Itens na cesta</th><td>${dados.itens.length}</td></tr>
+                <tr><th>Itens na coleta</th><td>${dados.itens.length}</td></tr>
                 <tr><th>Itens com valor publicado</th><td>${estat.quantidade}</td></tr>
                 <tr><th>Menor valor unitário</th><td>${moeda(estat.minimo)}</td></tr>
                 <tr><th>Mediana dos valores unitários</th><td><strong>${moeda(estat.mediana)}</strong></td></tr>
@@ -106,7 +106,7 @@ const RelatorioPesquisa = (() => {
                     <tr><th>Tipo de consulta</th><td>${escapar(ROTULO_TIPO[dados.tipo] || dados.tipo)}</td></tr>
                     ${dados.termo ? `<tr><th>Termo pesquisado</th><td>${escapar(dados.termo)}</td></tr>` : ''}
                     <tr><th>Data e hora</th><td>${dataHora(dados.geradoEm)}</td></tr>
-                    <tr><th>${dados.tipo === 'cesta' ? 'Itens na cesta' : 'Registros selecionados'}</th><td>${dados.selecionados ?? dados.itens.length}${
+                    <tr><th>${dados.tipo === 'coleta' ? 'Itens na coleta' : 'Registros selecionados'}</th><td>${dados.selecionados ?? dados.itens.length}${
                         dados.encontrados && dados.encontrados !== dados.selecionados
                             ? ` de ${dados.encontrados} encontrados` : ''
                     }</td></tr>
@@ -127,8 +127,8 @@ const RelatorioPesquisa = (() => {
             </section>
 
             <section>
-                <h2>4. Cesta de preços</h2>
-                <table class="cesta">
+                <h2>4. Coleta de preços</h2>
+                <table class="coleta">
                     <thead>
                         <tr>
                             <th>#</th><th>Item</th><th>Órgão</th><th>UF</th>
@@ -157,7 +157,7 @@ const RelatorioPesquisa = (() => {
             <section class="observacao">
                 <h2>6. Observações</h2>
                 ${dados.itens.length < 3 ? `
-                <p class="alerta"><strong>Atenção:</strong> a cesta reúne
+                <p class="alerta"><strong>Atenção:</strong> a coleta reúne
                 ${dados.itens.length} registro(s). A maioria dos processos exige
                 pelo menos três preços para a pesquisa.</p>` : ''}
                 <p>Os registros acima correspondem ao que o PNCP retornou no momento da

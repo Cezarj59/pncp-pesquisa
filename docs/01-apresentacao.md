@@ -32,7 +32,7 @@ práticas:
 | Não há filtro por faixa de valor | comparar preços exige leitura manual |
 | Não há seleção de registros | o técnico copia linha por linha para o Excel |
 | Não há exportação | a memória de cálculo é montada à mão |
-| Não há relatório | a cesta de preços é redigida do zero |
+| Não há relatório | a coleta de preços é redigida do zero |
 
 O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcrição
 — justamente na etapa que precisa de rastreabilidade.
@@ -48,8 +48,8 @@ O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcriçã
 | Seleção de múltiplos estados (ex.: PR e SP) | implementado |
 | Ordenação por data, valor ou órgão | implementado |
 | Painel de preços por item: valor estimado e todos os homologados | implementado |
-| Cesta de itens: selecionar um item, pesquisar outra contratação e somar | implementado |
-| Exportação em CSV da cesta | implementado |
+| Coleta de itens: selecionar um item, pesquisar outra contratação e somar | implementado |
+| Exportação em CSV da coleta | implementado |
 | Relatório de pesquisa em PDF, com cálculos e campos de assinatura | implementado |
 | Detalhe da contratação: documentos, itens e preços homologados | implementado |
 | Link direto para o registro no portal do PNCP | implementado |
@@ -69,10 +69,10 @@ O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcriçã
 5. **Abre o detalhe** de uma contratação e clica em **Preços** no item: o painel
    mostra o **valor unitário estimado** e, para cada fornecedor, o
    **valor unitário homologado**.
-6. **Adiciona à cesta** apenas os itens que interessam. Pode voltar, fazer
-   outra pesquisa e somar mais itens — a cesta guarda tudo.
-7. Na **Cesta**, revisa, remove o que não serve, e **gera o relatório** (PDF)
-   ou exporta a planilha. A cesta exige no mínimo três itens.
+6. **Adiciona à coleta** apenas os itens que interessam. Pode voltar, fazer
+   outra pesquisa e somar mais itens — a coleta guarda tudo.
+7. Na **Coleta**, revisa, remove o que não serve, e **gera o relatório** (PDF)
+   ou exporta a planilha. A coleta exige no mínimo três itens.
 
 ---
 
@@ -80,11 +80,11 @@ O resultado é um trabalho repetitivo, demorado e sujeito a erro de transcriçã
 
 O documento gerado contém:
 
-1. **Identificação** — data e hora, quantos itens compõem a cesta.
+1. **Identificação** — data e hora, quantos itens compõem a coleta.
 2. **Origem dos dados** — PNCP, dados públicos.
 3. **Resumo dos valores unitários** — quantidade, menor valor,
    **mediana**, média e maior valor.
-4. **Cesta de preços** — uma linha por item, com descrição, fornecedor,
+4. **Coleta de preços** — uma linha por item, com descrição, fornecedor,
    órgão, município/UF, data, quantidade, **valor unitário estimado**,
    **valor unitário homologado** e o endereço do registro de origem.
 5. **Metodologia** — campos para o responsável assinalar média, mediana, menor
@@ -104,7 +104,7 @@ escolha e a justificativa permanecem com o servidor.
 
 | Limite | Explicação |
 |---|---|
-| Não guarda histórico no servidor | a cesta fica no navegador; trocando de computador, ela não acompanha |
+| Não guarda histórico no servidor | a coleta fica no navegador; trocando de computador, ela não acompanha |
 | Não tem usuários nem perfis | qualquer pessoa com o endereço acessa |
 | Não tem base de dados própria | depende inteiramente do PNCP responder |
 | A busca é uma amostra | traz até 100 resultados (ou até 500 no limite máximo), não o universo do período |
@@ -183,11 +183,11 @@ integração:
 
 | Item | Número |
 |---|---|
-| Verificações automatizadas | 81 |
-| Suítes de teste | 5 |
+| Verificações automatizadas | 132 |
+| Suítes de teste | 7 |
 | Verificação diária da API | 1 (GitHub Actions) |
-| Telas | 7 |
-| Linhas de código | cerca de 3.700 |
+| Telas | 8 |
+| Linhas de código | cerca de 3900 |
 
 As suítes cobrem as decisões do motor de busca, a conversão de endereços, o
 comportamento em falha, os cálculos do relatório e a seleção de registros.

@@ -192,9 +192,9 @@ técnico costuma aproveitar um item de uma compra e outro de outra.
 Por isso a seleção saiu da lista de resultados e foi para o detalhe, no nível
 do item:
 
-- `js/cesta.js` guarda a cesta em `localStorage`, com chave
+- `js/coleta.js` guarda a coleta em `localStorage`, com chave
   `itemUrl#numeroItem` — o mesmo item em contratações diferentes não colide;
-- a cesta **sobrevive** a novas pesquisas, recarregar a página e fechar a aba;
+- a coleta **sobrevive** a novas pesquisas, recarregar a página e fechar a aba;
 - um item já adicionado não duplica: a segunda tentativa é recusada com
   `motivo: 'repetido'`;
 - a leitura é tolerante a dado corrompido (retorna lista vazia).
@@ -215,7 +215,7 @@ mais de um fornecedor (cota reservada, desempate), o servidor vê todos.
 A tabela de itens mantém apenas o `Unit. estimado`; o homologado vive no
 painel, para não alargar a tabela com um valor que depende de consulta.
 
-Para a cesta, usa-se o **menor** `valorUnitarioHomologado` positivo do item,
+Para a coleta, usa-se o **menor** `valorUnitarioHomologado` positivo do item,
 com registro do fornecedor correspondente. É heurística, não adjudicação: o
 menor preço coincide com o vencedor na maioria dos casos, mas não em cota
 reservada nem em desempate — daí o painel completo ao lado.
@@ -223,15 +223,15 @@ reservada nem em desempate — daí o painel completo ao lado.
 A consulta é sob demanda e fica em cache por 5 minutos, em memória e em
 `sessionStorage`: adicionar, remover e adicionar de novo não repete a consulta.
 
-### 6.2 Mínimo da cesta
+### 6.2 Mínimo da coleta
 
-`Cesta.MINIMO = 3` em `js/cesta.js`.
+`Coleta.MINIMO = 3` em `js/coleta.js`.
 
 - com 1 ou 2 itens, o relatório fica bloqueado;
 - o sistema informa quantos faltam;
 - o CSV é liberado com qualquer quantidade (inclusive vazia, para o caso de
   exportação parcial);
-- a página da cesta valida o mínimo antes de abrir o documento.
+- a página da coleta valida o mínimo antes de abrir o documento.
 
 O número **não cita norma**. A fonte normativa varia por órgão e deve ser
 definida pelo setor de licitações antes da integração.
@@ -239,7 +239,7 @@ definida pelo setor de licitações antes da integração.
 ### 6.3 Relatório
 
 Montado em `js/relatorio-pesquisa.js` a partir de um objeto preparado em
-`js/cesta-pagina.js` e transportado por `sessionStorage`. A referência de valor
+`js/coleta-pagina.js` e transportado por `sessionStorage`. A referência de valor
 é o **unitário homologado**, com queda para o estimado quando não houver.
 
 ```
@@ -259,9 +259,9 @@ Apenas valores maiores que zero entram na conta.
 | `js/busca.js` | 258 | motor: política, cache, retentativa, disjuntor |
 | `js/filtros.js` | 290 | configuração e renderização dos filtros |
 | `js/resultados.js` | 544 | orquestração, filtros locais, ordenação, listagem |
-| `js/detalhe.js` | 734 | dados, documentos, itens, dois preços e adição à cesta |
-| `js/cesta.js` | 87 | armazenamento da cesta em `localStorage` |
-| `js/cesta-pagina.js` | 258 | página da cesta: lista, resumo, CSV e relatório |
+| `js/detalhe.js` | 734 | dados, documentos, itens, dois preços e adição à coleta |
+| `js/coleta.js` | 87 | armazenamento da coleta em `localStorage` |
+| `js/coleta-pagina.js` | 258 | página da coleta: lista, resumo, CSV e relatório |
 | `js/relatorio.js` | 52 | geração do CSV |
 | `js/relatorio-pesquisa.js` | 213 | documento imprimível |
 | `css/estilo.css` | 377 | interface |
@@ -278,12 +278,12 @@ node tests/busca.test.js          # 13 verificações
 node tests/api.test.js            # 11
 node tests/detalhe.test.js        #  8
 node tests/itens.test.js          # 22
-node tests/cesta.test.js          # 18
-node tests/cesta-pagina.test.js   # 19
+node tests/coleta.test.js         # 33
+node tests/coleta-pagina.test.js  # 21
 node tests/relatorio.test.js      # 24
 ```
 
-**Total: 115 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
+**Total: 132 verificações.** Os arquivos usam `eval` sobre o código-fonte, com
 `fetch` simulado — testam o código real, não uma cópia.
 
 ### 8.2 Verificação diária
@@ -357,7 +357,7 @@ indexado — para não gerar alarme falso.
 | Termo | Significado |
 |---|---|
 | **PNCP** | Portal Nacional de Contratações Públicas |
-| **Cesta de preços** | conjunto de preços coletados que fundamenta o valor estimado |
+| **Coleta de preços** | conjunto de preços coletados que fundamenta o valor estimado |
 | **Profundidade** | quantidade de páginas lidas em uma busca (hoje automática) |
 | **Disjuntor** | mecanismo que interrompe tentativas após falhas repetidas |
 | **Cache** | armazenamento temporário para evitar consulta repetida |

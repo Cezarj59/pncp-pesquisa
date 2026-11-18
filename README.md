@@ -18,7 +18,7 @@ Pronto para GitHub Pages.
 | `contratos.html` | filtros de contratos e empenhos |
 | `resultados.html` | lista os registros, com ordenação e "buscar mais" |
 | `detalhe.html` | dados completos, documentos, itens e preços por item |
-| `cesta.html` | itens selecionados, resumo de valores, CSV e relatório |
+| `coleta.html` | histórico de coletas, itens, CSV e relatório |
 
 ## Como funciona
 
@@ -27,7 +27,7 @@ editais.html  →  resultados.html?tipo=edital&q=merenda&uf=PR&...
                         ↓ (clique em "Detalhes")
                  detalhe.html?u=/compras/76105634000170/2026/44
                         ↓ ("Adicionar" nos itens)
-                 cesta.html  →  relatório em PDF
+                 coleta.html  →  relatório em PDF
 ```
 
 Os dados vêm **ao vivo** do PNCP, buscados pelo navegador do usuário:
@@ -123,7 +123,7 @@ pncp-demo/
 ├── contratos.html
 ├── resultados.html
 ├── detalhe.html
-├── cesta.html
+├── coleta.html
 ├── relatorio.html
 ├── css/
 │   ├── estilo.css
@@ -132,19 +132,19 @@ pncp-demo/
 │   ├── api.js                cliente da API do PNCP
 │   ├── busca.js              motor: paginação, cache, retentativa, disjuntor
 │   ├── filtros.js            configuração e renderização dos filtros
-│   ├── cesta.js              armazenamento dos itens selecionados
+│   ├── coleta.js              armazenamento dos itens selecionados
 │   ├── relatorio.js          geração do CSV
 │   ├── relatorio-pesquisa.js documento imprimível de pesquisa de preços
 │   ├── resultados.js         orquestra busca, filtros, ordenação e listagem
-│   ├── cesta-pagina.js       página da cesta: lista, resumo, CSV e relatório
-│   └── detalhe.js            dados, documentos, itens, preços e cesta
+│   ├── coleta-pagina.js       página da coleta: lista, resumo, CSV e relatório
+│   └── detalhe.js            dados, documentos, itens, preços e coleta
 └── tests/
     ├── api.test.js
     ├── busca.test.js
     ├── detalhe.test.js
     ├── itens.test.js
-    ├── cesta.test.js
-    ├── cesta-pagina.test.js
+    ├── coleta.test.js
+    ├── coleta-pagina.test.js
     └── relatorio.test.js
 ```
 
@@ -157,8 +157,8 @@ node tests/busca.test.js
 node tests/api.test.js
 node tests/detalhe.test.js
 node tests/itens.test.js
-node tests/cesta.test.js
-node tests/cesta-pagina.test.js
+node tests/coleta.test.js
+node tests/coleta-pagina.test.js
 node tests/relatorio.test.js
 ```
 
@@ -166,39 +166,54 @@ Cobrem as decisões do motor (alvo, teto, falha parcial, cache, cancelamento,
 página inicial), a conversão de `item_url` em endpoint e link do portal, o
 comportamento da página de detalhe quando o PNCP recusa (mensagem clara, nova
 tentativa e cache), a tabela de itens com os dois preços, o armazenamento da
-cesta, os cálculos do relatório e a página da cesta.
+coleta, os cálculos do relatório e a página da coleta.
 
-## Cesta de pesquisa
+## Coletas de preços
 
 A unidade da pesquisa é o **item**, não a contratação. Muitas vezes o técnico
 aproveita um único item de uma compra.
 
 1. Na lista de resultados, abra o **detalhe** de uma contratação.
 2. Em **Itens e preços**, clique em **Adicionar** no item desejado.
-3. Pode voltar, fazer **outra pesquisa** e adicionar mais itens — a cesta
-   acumula em `localStorage`, então sobrevive a recarregar a página e a fechar
-   a aba.
-4. Em **Cesta** (no topo), revise, remova o que não serve e gere o documento.
+3. Pode voltar, fazer **outra pesquisa** e adicionar mais itens — tudo fica em
+   `localStorage`, então sobrevive a recarregar a página e a fechar a aba.
+4. Em **Coleta** (no topo), revise, remova o que não serve e gere o documento.
+
+### Histórico
+
+O sistema guarda **várias coletas**, não uma só. Cada uma tem nome, data e os
+seus itens, e nenhuma é apagada ao iniciar outra.
+
+| Ação | Efeito |
+|---|---|
+| **Nova coleta** | abre uma lista nova; as anteriores continuam guardadas |
+| **Usar esta** | passa a adicionar itens nessa coleta |
+| **Renomear** | troca o nome (padrão: "Coleta de 18/11/2026, 19:30") |
+| **Gerar relatório** | emite o documento e **encerra** a coleta |
+| **Excluir** | remove a coleta e seus itens |
+
+Depois de gerar o relatório, os próximos itens adicionados vão automaticamente
+para uma coleta nova — a que foi relatada fica intacta no histórico.
 
 O botão **Preços** de cada item abre um painel com o **valor unitário estimado**
 do item e, para cada fornecedor homologado, o **valor unitário homologado** e a
 quantidade homologada. É ali que se compara o previsto com o contratado.
 
-Para a cesta, o sistema usa o **menor** valor homologado do item e guarda o
+Para a coleta, o sistema usa o **menor** valor homologado do item e guarda o
 fornecedor correspondente.
 
-A cesta exige **no mínimo 3 itens**. Abaixo disso, os botões ficam bloqueados e
+A coleta exige **no mínimo 3 itens**. Abaixo disso, os botões ficam bloqueados e
 o sistema informa quantos faltam.
 
 ## Relatório de pesquisa
 
-A partir da cesta, **Gerar relatório** abre um documento pronto para impressão
+A partir da coleta, **Gerar relatório** abre um documento pronto para impressão
 ou para salvar em PDF, contendo:
 
-1. identificação (data e hora, quantos itens na cesta);
+1. identificação (data e hora, quantos itens na coleta);
 2. origem dos dados;
 3. resumo dos valores **unitários**: quantidade, menor, **mediana**, média e maior;
-4. a cesta de preços, com item, fornecedor, órgão, quantidade, os dois valores
+4. a coleta de preços, com item, fornecedor, órgão, quantidade, os dois valores
    unitários e o link do registro de origem;
 5. campos para o responsável assinalar a metodologia adotada e o valor de
    referência;
@@ -208,7 +223,7 @@ O documento deixa explícito que os registros correspondem ao que o PNCP
 retornou no momento da consulta, e não à totalidade das contratações do
 período — informação necessária quando o relatório vai ao processo.
 
-**Exportar CSV** gera a mesma cesta em planilha, com uma coluna para cada preço.
+**Exportar CSV** gera a mesma coleta em planilha, com uma coluna para cada preço.
 
 ## Verificação automática da API
 

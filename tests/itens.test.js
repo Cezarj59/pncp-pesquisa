@@ -43,11 +43,12 @@ globalThis.sessionStorage = {
 };
 globalThis.window = { location: { search: '' } };
 
-let naCesta = false;
-globalThis.Cesta = {
-    contem: () => naCesta,
+let naColeta = false;
+globalThis.Coleta = {
+    contem: () => naColeta,
     adicionar: () => ({ ok: true }),
-    total: () => (naCesta ? 1 : 0),
+    total: () => (naColeta ? 1 : 0),
+    ativa: () => ({ id: 'c1', nome: 'Coleta de teste', itens: [] }),
     MINIMO: 3
 };
 
@@ -103,10 +104,10 @@ const itens = [
     checar('item sigiloso não pode ser adicionado',
         html.includes('data-item="3"') && html.split('data-item="3"')[1].includes('disabled'));
 
-    naCesta = true;
+    naColeta = true;
     __renderItens(itens, '/compras/1/2026/2');
-    checar('item na cesta mostra "Na cesta"', el('itens').innerHTML.includes('Na cesta'));
-    naCesta = false;
+    checar('item na coleta mostra "Na coleta"', el('itens').innerHTML.includes('Na coleta'));
+    naColeta = false;
 
     __definirContexto({ orgao_nome: 'Prefeitura de Colombo', municipio_nome: 'Colombo',
                         uf: 'PR', data_publicacao_pncp: '2026-11-01' });

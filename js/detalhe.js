@@ -102,7 +102,7 @@ function numeroOuNulo(v) {
 let itemUrlAtual = '';
 const jaCarregado = { documentos: false, itens: false, termos: false };
 
-// Contexto da contratação, usado ao adicionar itens à cesta
+// Contexto da contratação, usado ao adicionar itens à coleta
 let contextoAtual = { orgao: '', uf: '', municipio: '', data: '', link: '' };
 
 // Itens exibidos e preços já consultados (por número do item)
@@ -141,7 +141,7 @@ function gravarCacheDetalhe(itemUrl, entidade) {
 /* ---------- blocos ---------- */
 
 /**
- * Guarda órgão, UF, município e data para o registro da cesta.
+ * Guarda órgão, UF, município e data para o registro da coleta.
  * Aceita tanto o formato da listagem quanto o do detalhe.
  */
 function definirContexto(fonte) {
@@ -275,7 +275,18 @@ function renderItens(itens, itemUrl) {
 
     const comResultado = itens.filter(i => i.temResultado).length;
 
-    let html = `<div class="tabela-wrap"><table>
+    const coletaAtiva = Coleta.ativa();
+    const destino = coletaAtiva
+        ? `<strong>${escapar(coletaAtiva.nome)}</strong> (${coletaAtiva.itens.length} ${
+            coletaAtiva.itens.length === 1 ? 'item' : 'itens'})`
+        : 'uma nova coleta';
+
+    const avisoColeta = `<p class="mudo" style="margin-bottom: 10px">
+        Os itens adicionados vão para: ${destino}.
+        <a class="link" href="coleta.html">Ver coletas</a>
+    </p>`;
+
+    let html = avisoColeta + `<div class="tabela-wrap"><table>
         <thead><tr>
             <th scope="col">#</th>
             <th scope="col">Descrição</th>
@@ -297,7 +308,7 @@ function renderItens(itens, itemUrl) {
             ? '<span class="tag">homologado</span>'
             : '<span class="mudo">sem resultado</span>';
 
-        const naCesta = Cesta.contem(itemUrl, numeroItem);
+        const naColeta = Coleta.contem(itemUrl, numeroItem);
         const podeAdicionar = item.temResultado || (!sigiloso && numeroOuNulo(item.valorUnitarioEstimado) > 0);
 
         html += `<tr>
@@ -313,8 +324,8 @@ function renderItens(itens, itemUrl) {
                 <button class="mini" data-adicionar="1"
                         data-url="${escapar(itemUrl)}"
                         data-item="${numeroItem}"
-                        ${naCesta || !podeAdicionar ? 'disabled' : ''}>
-                    ${naCesta ? 'Na cesta ✓' : 'Adicionar'}
+                        ${naColeta || !podeAdicionar ? 'disabled' : ''}>
+                    ${naColeta ? 'Na coleta ✓' : 'Adicionar'}
                 </button>
             </td>
         </tr>`;
@@ -343,7 +354,7 @@ function renderItens(itens, itemUrl) {
     }
 
     area.innerHTML = html;
-    atualizarLinkCesta();
+    atualizarLinkColeta();
 }
 
 /** Consulta os preços homologados do item e preenche a coluna. */
@@ -454,7 +465,7 @@ async function verPrecos(botao, itemUrl, numeroItem) {
     }
 }
 
-/** Adiciona o item à cesta de pesquisa. */
+/** Adiciona o item à coleta de preços. */
 async function adicionarItem(botao) {
     const itemUrl = botao.dataset.url;
     const numeroItem = Number(botao.dataset.item);
@@ -476,7 +487,7 @@ async function adicionarItem(botao) {
         const estimado = numeroOuNulo(item.valorUnitarioEstimado);
         const homologado = registro && registro.valor ? registro.valor : homologadoDoItem(item);
 
-        const resultado = Cesta.adicionar({
+        const resultado = Coleta.adicionar({
             itemUrl,
             numeroItem,
             tipo: itemUrl.startsWith('/atas/') ? 'ata'
@@ -495,7 +506,7 @@ async function adicionarItem(botao) {
         });
 
         if (resultado.ok || resultado.motivo === 'repetido') {
-            botao.textContent = 'Na cesta ✓';
+            botao.textContent = 'Na coleta ✓';
             botao.disabled = true;
         } else {
             botao.textContent = textoOriginal;
@@ -506,15 +517,15 @@ async function adicionarItem(botao) {
     } catch (erro) {
         botao.textContent = textoOriginal;
         botao.disabled = false;
-        alert(`Não foi possível buscar o preço homologado deste item.\n\n${mensagemErro(erro)}\n\nO item não foi adicionado à cesta.`);
+        alert(`Não foi possível buscar o preço homologado deste item.\n\n${mensagemErro(erro)}\n\nO item não foi adicionado à coleta.`);
     }
 
-    atualizarLinkCesta();
+    atualizarLinkColeta();
 }
 
-/** Mostra a quantidade de itens da cesta no topo da página. */
-function atualizarLinkCesta() {
-    if (typeof atualizarNavCesta === 'function') atualizarNavCesta();
+/** Mostra a quantidade de itens da coleta no topo da página. */
+function atualizarLinkColeta() {
+    if (typeof atualizarNavColeta === 'function') atualizarNavColeta();
 }
 
 function renderTermos(termos) {
@@ -769,7 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    atualizarLinkCesta();
+    atualizarLinkColeta();
 
     carregar();
 });

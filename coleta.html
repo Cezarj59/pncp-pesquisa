@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coletas de preços — Licit@Gov</title>
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<header class="topo">
+    <h1>Licit@Gov <small>Pesquisa de compras públicas no PNCP</small></h1>
+    <nav>
+        <a href="index.html">Início</a>
+        <a href="editais.html">Editais</a>
+        <a href="atas.html">Atas de Preços</a>
+        <a href="contratos.html">Contratos</a>
+        <a href="coleta.html" id="link-coleta">Coleta</a>
+    </nav>
+</header>
+
+<main>
+
+    <div class="card">
+        <div class="linha">
+            <h2>Coletas de preços</h2>
+            <span class="espaco"></span>
+            <span id="resumo-geral" class="mudo"></span>
+            <button id="btnNovaColeta">Nova coleta</button>
+        </div>
+
+        <p class="sub" style="margin-top: 6px">
+            Cada coleta reúne os itens de uma pesquisa de preços. Ao gerar o
+            relatório, a coleta é encerrada e os próximos itens vão para uma
+            nova — o histórico fica todo guardado aqui.
+        </p>
+
+        <div id="aviso"></div>
+        <div id="lista"></div>
+    </div>
+
+</main>
+
+<script src="js/relatorio.js"></script>
+<script src="js/coleta.js"></script>
+<script src="js/coleta-pagina.js"></script>
+
+</body>
+</html>
