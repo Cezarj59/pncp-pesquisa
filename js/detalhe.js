@@ -242,10 +242,13 @@ function homologadoDoItem(item) {
 /** Menor preço homologado entre os fornecedores do item. */
 function melhorPreco(resultados) {
     let melhor = null;
+    let fornecedores = 0;
 
     (resultados || []).forEach(registro => {
         const valor = numeroOuNulo(registro.valorUnitarioHomologado);
         if (valor === null || valor <= 0) return;
+
+        fornecedores++;
 
         if (!melhor || valor < melhor.valor) {
             melhor = {
@@ -256,13 +259,18 @@ function melhorPreco(resultados) {
         }
     });
 
+    if (melhor) melhor.fornecedores = fornecedores;
     return melhor;
 }
 
-function celulaHomologado(numeroItem, valor) {
-    return `<td class="num" data-homologado="${numeroItem}">${
-        valor ? moeda(valor) : '<span class="mudo">—</span>'
-    }</td>`;
+function celulaHomologado(numeroItem, valor, fornecedores) {
+    const sufixo = fornecedores > 1
+        ? `<br><span class="mudo">${fornecedores} fornecedores</span>`
+        : '';
+
+    return `<td class="num" data-homologado="${numeroItem}" title="${
+        fornecedores > 1 ? 'Menor valor homologado entre os fornecedores do item' : ''
+    }">${valor ? moeda(valor) : '<span class="mudo">—</span>'}${valor ? sufixo : ''}</td>`;
 }
 
 function renderItens(itens, itemUrl) {
@@ -283,7 +291,7 @@ function renderItens(itens, itemUrl) {
             <th scope="col">Descrição</th>
             <th scope="col">Qtd.</th>
             <th scope="col">Unit. estimado</th>
-            <th scope="col">Unit. homologado</th>
+            <th scope="col" title="Menor valor homologado entre os fornecedores do item">Unit. homologado</th>
             <th scope="col">Resultado</th>
             <th scope="col">Ações</th>
         </tr></thead><tbody>`;
@@ -315,7 +323,8 @@ function renderItens(itens, itemUrl) {
             <td>${escapar(item.descricao || '')}</td>
             <td class="num">${escapar(item.quantidade ?? '')} ${escapar(item.unidadeMedida || '')}</td>
             <td class="num">${estimado}</td>
-            ${celulaHomologado(numeroItem, valorHomologado)}
+            ${celulaHomologado(numeroItem, valorHomologado,
+                jaConsultado ? jaConsultado.fornecedores : 0)}
             <td>${situacao}</td>
             <td class="acoes-item">
                 ${item.temResultado
@@ -362,18 +371,57 @@ async function carregarPrecos(itemUrl, numeroItem) {
     const jaTem = precosPorItem.get(numeroItem);
     if (jaTem) return jaTem;
 
-    const resultados = await PNCP.resultados(itemUrl, numeroItem);
+    const chaveCache = `pncp:item:${itemUrl}#${numeroItem}`;
+    let resultados = lerCacheItem(chaveCache);
+
+    if (!resultados) {
+        resultados = await PNCP.resultados(itemUrl, numeroItem);
+        gravarCacheItem(chaveCache, resultados);
+    }
+
     const melhor = melhorPreco(resultados);
-    const registro = { resultados, ...(melhor || { valor: null, fornecedor: '' }) };
+    const registro = { resultados, ...(melhor || { valor: null, fornecedor: '', fornecedores: 0 }) };
 
     precosPorItem.set(numeroItem, registro);
 
     const celula = document.querySelector(`td[data-homologado="${numeroItem}"]`);
     if (celula) {
-        celula.innerHTML = melhor ? moeda(melhor.valor) : '<span class="mudo">—</span>';
+        celula.innerHTML = melhor
+            ? `${moeda(melhor.valor)}${melhor.fornecedores > 1
+                ? `<br><span class="mudo">${melhor.fornecedores} fornecedores</span>` : ''}`
+            : '<span class="mudo">—</span>';
     }
 
     return registro;
+}
+
+/* ---------- cache dos preços por item ---------- */
+
+const CACHE_ITEM_TTL = 5 * 60 * 1000;
+
+function lerCacheItem(chave) {
+    try {
+        const bruto = sessionStorage.getItem(chave);
+        if (!bruto) return null;
+
+        const dados = JSON.parse(bruto);
+        if (Date.now() - dados.quando > CACHE_ITEM_TTL) return null;
+
+        return dados.resultados;
+    } catch (_) {
+        return null;
+    }
+}
+
+function gravarCacheItem(chave, resultados) {
+    try {
+        sessionStorage.setItem(chave, JSON.stringify({
+            quando: Date.now(),
+            resultados
+        }));
+    } catch (_) {
+        // Cota do sessionStorage: seguir sem cache
+    }
 }
 
 async function verPrecos(botao, itemUrl, numeroItem) {
@@ -465,7 +513,7 @@ async function adicionarItem(botao) {
     } catch (erro) {
         botao.textContent = textoOriginal;
         botao.disabled = false;
-        alert(mensagemErro(erro));
+        alert(`Não foi possível buscar o preço homologado deste item.\n\n${mensagemErro(erro)}\n\nO item não foi adicionado à cesta.`);
     }
 
     atualizarLinkCesta();
