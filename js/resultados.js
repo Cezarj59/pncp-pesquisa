@@ -328,6 +328,7 @@ function atualizarSelecao() {
     const contador = document.getElementById('contador-selecao');
     const botaoRelatorio = document.getElementById('btnRelatorio');
     const botaoCsv = document.getElementById('btnExportar');
+    const avisoCesta = document.getElementById('aviso-cesta');
 
     const total = selecionados.size;
 
@@ -335,6 +336,16 @@ function atualizarSelecao() {
         contador.textContent = total
             ? `${total} selecionado${total > 1 ? 's' : ''}`
             : 'Marque os registros que vão para o relatório';
+    }
+
+    // Aviso quando a cesta tem menos de 3 preços. Não bloqueia: orienta.
+    if (avisoCesta) {
+        const insuficiente = total > 0 && total < 3;
+
+        avisoCesta.style.display = insuficiente ? '' : 'none';
+        avisoCesta.textContent = insuficiente
+            ? 'Menos de 3 preços — a maioria dos processos exige ao menos 3.'
+            : '';
     }
 
     if (botaoRelatorio) {

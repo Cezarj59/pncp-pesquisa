@@ -108,6 +108,12 @@ button:hover { background: var(--verde); }
     background: #FBF6E7;
 }
 
+.alerta {
+    padding: 9px 12px;
+    border-left: 3px solid #C9A227;
+    background: #FBF6E7;
+}
+
 a { color: var(--verde-escuro); }
 
 /* ---------- impressão ---------- */

@@ -44,6 +44,8 @@ const dados = {
     geradoEm: '2026-11-18T02:00:00.000Z',
     tipo: 'edital',
     termo: 'merenda',
+    encontrados: 10,
+    selecionados: 2,
     filtros: ['Palavra-chave: merenda', 'UF: PR, SP', 'Período: últimos 365 dias'],
     itens: [
         { objeto: 'Merenda escolar', orgao: 'Prefeitura de Colombo', municipio: 'Colombo',
@@ -68,6 +70,22 @@ checar('tem campo de metodologia', html.includes('Metodologia adotada'));
 checar('tem assinatura', html.includes('Responsável pela pesquisa'));
 checar('escapa HTML do objeto', !html.includes('<script'));
 checar('avisa sobre o alcance', html.includes('Não representam a totalidade'));
+
+// --- cesta com menos de 3 ---
+checar('alerta de cesta pequena com 2 registros', html.includes('pelo menos três'));
+checar('informa quantos selecionados', html.includes('2 de 10'),
+    'encontrados: 10, itens: 2');
+
+const comTres = __R.montar({
+    geradoEm: '2026-11-18T02:00:00.000Z', tipo: 'edital', termo: 'x',
+    encontrados: 10, selecionados: 3, filtros: [],
+    itens: [
+        { objeto: 'A', orgao: 'X', uf: 'PR', valorReferencia: 10, link: '' },
+        { objeto: 'B', orgao: 'Y', uf: 'PR', valorReferencia: 20, link: '' },
+        { objeto: 'C', orgao: 'Z', uf: 'PR', valorReferencia: 30, link: '' }
+    ]
+});
+checar('sem alerta com 3 registros', !comTres.includes('pelo menos três'));
 
 // --- sem valores ---
 const semValor = __R.montar({

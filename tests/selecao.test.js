@@ -56,7 +56,8 @@ console.log('seleção de registros');
 
 const itens = [
     { item_url: '/compras/1/2026/1', description: 'Merenda', orgao_nome: 'Prefeitura A', uf: 'PR', valor_total_estimado: 100 },
-    { item_url: '/compras/2/2026/2', description: 'Gêneros', orgao_nome: 'Prefeitura B', uf: 'SP', valor_total_estimado: 200 }
+    { item_url: '/compras/2/2026/2', description: 'Gêneros', orgao_nome: 'Prefeitura B', uf: 'SP', valor_total_estimado: 200 },
+    { item_url: '/compras/3/2026/3', description: 'Limpeza', orgao_nome: 'Prefeitura C', uf: 'PR', valor_total_estimado: 300 }
 ];
 
 __estado.tipo = 'edital';
@@ -67,7 +68,7 @@ __estado.filtrados = itens;
 __render();
 checar('tabela tem caixas de seleção', el('tabela').innerHTML.includes('data-selecionar'));
 checar('tabela tem "selecionar página"', el('tabela').innerHTML.includes('selecionar-pagina'));
-checar('guarda os itens da página', __estado.itensPagina.length === 2, `(${__estado.itensPagina.length})`);
+checar('guarda os itens da página', __estado.itensPagina.length === 3, `(${__estado.itensPagina.length})`);
 
 // --- nenhum selecionado ---
 __atualizar();
@@ -86,17 +87,31 @@ checar('CSV também segue a seleção', el('btnExportar').textContent === 'Expor
 checar('seleção devolve 1 registro', __daSelecao().length === 1);
 checar('registro certo', __daSelecao()[0].description === 'Merenda');
 
+// --- aviso de cesta com menos de 3 ---
+checar('avisa com 1 selecionado', el('aviso-cesta').style.display !== 'none');
+checar('aviso cita a exigência de 3', el('aviso-cesta').textContent.includes('3'),
+    el('aviso-cesta').textContent);
+
 // --- dois selecionados, plural ---
 __sel.add('/compras/2/2026/2');
 __atualizar();
 checar('plural correto', el('contador-selecao').textContent === '2 selecionados',
     el('contador-selecao').textContent);
+checar('aviso continua com 2', el('aviso-cesta').style.display !== 'none');
+
+// --- três selecionados: aviso desaparece ---
+__sel.add('/compras/3/2026/3');
+__atualizar();
+checar('aviso some com 3', el('aviso-cesta').style.display === 'none');
+checar('contagem com 3', el('btnRelatorio').textContent === 'Gerar relatório (3)',
+    el('btnRelatorio').textContent);
 
 // --- limpar ---
 __sel.clear();
 __atualizar();
 checar('limpar volta a desabilitar', el('btnRelatorio').disabled === true);
 checar('limpar zera a seleção', __daSelecao().length === 0);
+checar('limpar esconde o aviso', el('aviso-cesta').style.display === 'none');
 checar('CSV volta ao rótulo simples', el('btnExportar').textContent === 'Exportar CSV');
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo passou');

@@ -149,6 +149,10 @@ const RelatorioPesquisa = (() => {
 
             <section class="observacao">
                 <h2>6. Observações</h2>
+                ${dados.itens.length < 3 ? `
+                <p class="alerta"><strong>Atenção:</strong> a cesta reúne
+                ${dados.itens.length} registro(s). A maioria dos processos exige
+                pelo menos três preços para a pesquisa.</p>` : ''}
                 <p>Os registros acima correspondem ao que o PNCP retornou no momento da
                 consulta, dentro dos filtros informados. Não representam a totalidade
                 das contratações do período. Cada linha indica o endereço do registro
