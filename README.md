@@ -37,16 +37,32 @@ Os dados vêm **ao vivo** do PNCP, buscados pelo navegador do usuário:
 
 ### Sobre os filtros
 
-A API de busca do PNCP **só aplica a palavra-chave** (`q`). Todos os outros
-filtros — UF, município, órgão, modalidade, situação, valores, período — são
-aplicados **no navegador**, sobre os registros carregados.
+A API de busca do PNCP **só aplica a palavra-chave** (`q`) e o campo `status`
+(`encerradas` / `recebendo_proposta`). Os demais filtros — UF, município,
+órgão, modalidade, situação, valores, período — são aplicados **no navegador**,
+sobre os registros carregados.
 
-Por isso existe o campo **Profundidade da busca**: ele define quantas páginas
-de 50 registros serão lidas (1 a 12). Quanto maior, mais completa a filtragem
-e mais demorada a consulta.
+### Profundidade automática
 
-O rodapé de resultados sempre mostra: quantos passaram nos filtros, quantos
-foram analisados e quantos existem no PNCP para o termo.
+O usuário **não escolhe** quantas páginas ler. O motor (`js/busca.js`) decide,
+parando no primeiro destes critérios:
+
+| Condição | Efeito |
+|---|---|
+| 100 resultados filtrados | para — já há o suficiente |
+| 8 segundos de busca | para — respeita o tempo do usuário |
+| menos de 50 itens na página | para — acabaram os registros |
+| 10 páginas | teto duro de segurança |
+
+Além disso o motor aplica:
+
+- **cache de 5 minutos** por página, então repetir buscas ou trocar só os
+  filtros não consome requisições novas;
+- **retentativa com espera crescente e variação aleatória** em falhas;
+- **timeout de 15 s por requisição**, para nenhuma chamada travar a tela;
+- **disjuntor**: duas falhas seguidas encerram a busca;
+- **preservação do parcial**: se o PNCP falhar no meio, o que já veio é exibido;
+- **cancelamento**: nova busca aborta a anterior em andamento.
 
 ## Publicar no GitHub Pages
 

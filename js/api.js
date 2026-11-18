@@ -39,12 +39,15 @@ const PNCP = (() => {
         }
     }
 
-    async function buscarJson(url, tentativas = TENTATIVAS, podeSegirRota = true) {
+    async function buscarJson(url, tentativas = TENTATIVAS, podeSegirRota = true, sinal = null) {
         let ultimoErro = null;
 
         for (let i = 0; i < tentativas; i++) {
             try {
-                const resposta = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                const resposta = await fetch(url, {
+                    headers: { 'Accept': 'application/json' },
+                    signal: sinal || undefined
+                });
 
                 if (resposta.status === 204) return null;
 
@@ -52,14 +55,14 @@ const PNCP = (() => {
                     if (podeSegirRota) {
                         const novaRota = await seguirMudancaDeRota(resposta);
                         if (novaRota) {
-                            return buscarJson(novaRota, tentativas, false);
+                            return buscarJson(novaRota, tentativas, false, sinal);
                         }
                     }
 
                     // Segunda tentativa: troca a base antiga pela nova
                     if (url.includes('/api/pncp/')) {
                         const alternativa = url.replace('/api/pncp/', '/api/consulta/');
-                        return buscarJson(alternativa, tentativas, false);
+                        return buscarJson(alternativa, tentativas, false, sinal);
                     }
 
                     throw new Error('endpoint movido pelo PNCP');
@@ -70,6 +73,9 @@ const PNCP = (() => {
                 return await resposta.json();
 
             } catch (erro) {
+                // Cancelamento do usuário não deve ser tratado como falha
+                if (erro && erro.name === 'AbortError') throw erro;
+
                 ultimoErro = erro;
                 if (i < tentativas - 1) await dormir(ESPERA * (i + 1));
             }
@@ -79,7 +85,7 @@ const PNCP = (() => {
     }
 
     /** Busca textual por tipo de documento (edital, ata, contrato). */
-    async function buscar({ termo, tipo = 'edital', pagina = 1, tamPagina = 50, status = null }) {
+    async function buscar({ termo, tipo = 'edital', pagina = 1, tamPagina = 50, status = null, sinal = null }) {
         const params = new URLSearchParams({
             q: termo || '',
             tipos_documento: tipo,
@@ -92,7 +98,7 @@ const PNCP = (() => {
         // Também é obrigatório quando `q` vem vazio.
         if (status) params.set('status', status);
 
-        return buscarJson(`${BASE_BUSCA}?${params.toString()}`);
+        return buscarJson(`${BASE_BUSCA}?${params.toString()}`, TENTATIVAS, true, sinal);
     }
 
     /**

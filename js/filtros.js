@@ -38,11 +38,6 @@ const STATUS_DISPUTA = [
     ['homologadas','Com resultado homologado']
 ];
 
-const PAGINAS_OPCOES = [
-    ['1','1 página (50 registros)'], ['2','2 páginas (100)'], ['3','3 páginas (150)'],
-    ['5','5 páginas (250)'], ['8','8 páginas (400)'], ['12','12 páginas (600)']
-];
-
 /* Cada filtro: id, rótulo, tipo, opções, destaque, padrão */
 const FILTROS = {
 
@@ -68,9 +63,7 @@ const FILTROS = {
         { id: 'dias', rotulo: 'Período de publicação', tipo: 'select',
           opcoes: PERIODOS, padrao: '365' },
         { id: 'valorMin', rotulo: 'Valor estimado (mín.)', tipo: 'numero' },
-        { id: 'valorMax', rotulo: 'Valor estimado (máx.)', tipo: 'numero' },
-        { id: 'paginas', rotulo: 'Profundidade da busca', tipo: 'select',
-          opcoes: PAGINAS_OPCOES, padrao: '5' }
+        { id: 'valorMax', rotulo: 'Valor estimado (máx.)', tipo: 'numero' }
     ],
 
     ata: [
@@ -86,9 +79,7 @@ const FILTROS = {
         { id: 'cancelada', rotulo: 'Cancelada', tipo: 'select',
           opcoes: [['','Todas'],['nao','Não'],['sim','Sim']] },
         { id: 'dias', rotulo: 'Período de assinatura', tipo: 'select',
-          opcoes: PERIODOS, padrao: '365' },
-        { id: 'paginas', rotulo: 'Profundidade da busca', tipo: 'select',
-          opcoes: PAGINAS_OPCOES, padrao: '5' }
+          opcoes: PERIODOS, padrao: '365' }
     ],
 
     contrato: [
@@ -106,9 +97,7 @@ const FILTROS = {
         { id: 'dias', rotulo: 'Período de assinatura', tipo: 'select',
           opcoes: PERIODOS, padrao: '365' },
         { id: 'valorMin', rotulo: 'Valor global (mín.)', tipo: 'numero' },
-        { id: 'valorMax', rotulo: 'Valor global (máx.)', tipo: 'numero' },
-        { id: 'paginas', rotulo: 'Profundidade da busca', tipo: 'select',
-          opcoes: PAGINAS_OPCOES, padrao: '5' }
+        { id: 'valorMax', rotulo: 'Valor global (máx.)', tipo: 'numero' }
     ]
 };
 

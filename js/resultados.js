@@ -221,8 +221,7 @@ function renderizarTabela() {
     const area = document.getElementById('tabela');
 
     if (!estado.filtrados.length) {
-        area.innerHTML = `<div class="aviso">Nenhum registro encontrado com esses filtros
-            entre os ${estado.analisados} analisados.</div>`;
+        area.innerHTML = '<p class="mudo">Nenhum resultado para exibir.</p>';
         return;
     }
 
@@ -268,6 +267,8 @@ function irPara(pagina) {
 
 /* ---------- carga ---------- */
 
+let controladorBusca = null;
+
 async function carregar() {
     const status = document.getElementById('status');
     const params = estado.params;
@@ -287,46 +288,62 @@ async function carregar() {
         homologadas: 'encerradas'
     }[params.get('status')] || null;
 
-    const paginas = Math.max(1, Math.min(12, Number(params.get('paginas') || 3)));
+    // Cancela busca anterior, se ainda estiver em andamento
+    if (controladorBusca) controladorBusca.abort();
+    controladorBusca = new AbortController();
 
     status.innerHTML = '<div class="aviso"><span class="carregando"></span> Buscando no PNCP...</div>';
 
-    const acumulado = [];
+    let ultimoAviso = 0;
 
     try {
-        for (let pagina = 1; pagina <= paginas; pagina++) {
-            const dados = await PNCP.buscar({
-                termo, tipo: estado.tipo, pagina, tamPagina: 50, status: statusApi
-            });
+        const resultado = await MotorBusca.executar({
+            termo,
+            tipo: estado.tipo,
+            status: statusApi,
+            sinal: controladorBusca.signal,
+            aplicarFiltros,
+            aoProgresso: ({ filtrados }) => {
+                const agora = Date.now();
+                if (agora - ultimoAviso < 400) return;   // evita piscar
+                ultimoAviso = agora;
 
-            if (!dados) break;
+                status.innerHTML = `<div class="aviso"><span class="carregando"></span>
+                    Buscando... ${filtrados} resultado(s) até agora.</div>`;
+            }
+        });
 
-            const itens = dados.items || [];
-            if (!itens.length) break;
-
-            acumulado.push(...itens);
-
-            if (pagina < paginas) await new Promise(r => setTimeout(r, 300));
-        }
-
-        estado.todos = acumulado;
-        estado.analisados = acumulado.length;
-        estado.filtrados = aplicarFiltros(acumulado);
+        estado.todos = resultado.itens;
+        estado.analisados = resultado.itens.length;
+        estado.filtrados = aplicarFiltros(resultado.itens);
         estado.pagina = 1;
 
         const total = estado.filtrados.length;
 
-        status.innerHTML = total
-            ? `<div class="aviso ok">${total === 1
+        if (total === 0) {
+            status.innerHTML = resultado.completou
+                ? `<div class="aviso">Nenhum resultado encontrado.
+                   Tente outra palavra-chave, aumente o período ou escolha
+                   "Todas" em Situação da disputa.</div>`
+                : `<div class="aviso erro">Não foi possível concluir a busca agora.
+                   Tente novamente em alguns instantes.</div>`;
+        } else if (!resultado.completou) {
+            status.innerHTML = `<div class="aviso ok">${total === 1
+                ? '1 resultado encontrado'
+                : `${total} resultados encontrados`}. A busca foi interrompida antes do fim.</div>`;
+        } else {
+            status.innerHTML = `<div class="aviso ok">${total === 1
                 ? '1 resultado encontrado.'
-                : `${total} resultados encontrados.`}</div>`
-            : `<div class="aviso">Nenhum resultado encontrado.
-               Tente outra palavra-chave, aumente o período ou escolha
-               "Todas" em Situação da disputa.</div>`;
+                : `${total} resultados encontrados.`}</div>`;
+        }
 
         renderizarTabela();
 
     } catch (erro) {
+        // Busca substituída por outra: sai em silêncio
+        if (erro && erro.name === 'AbortError') return;
+
+        document.getElementById('tabela').innerHTML = '';
         status.innerHTML = `<div class="aviso erro">
             Não foi possível concluir a busca agora.
             Verifique sua conexão e tente novamente em alguns instantes.
@@ -347,6 +364,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const voltar = document.getElementById('voltar');
     if (voltar) voltar.href = `${estado.tipo === 'ata' ? 'atas' : estado.tipo === 'contrato' ? 'contratos' : 'editais'}.html`;
+
+    // Abandona a busca em andamento ao sair da página
+    window.addEventListener('pagehide', () => {
+        if (controladorBusca) controladorBusca.abort();
+    });
 
     carregar();
 });
