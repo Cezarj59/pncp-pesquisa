@@ -90,6 +90,11 @@ function moeda(v) {
         : '<span class="mudo">—</span>';
 }
 
+/* ---------- estado da página ---------- */
+
+let itemUrlAtual = '';
+const jaCarregado = { documentos: false, itens: false, termos: false };
+
 /* ---------- blocos ---------- */
 
 function renderDados(entidade) {
@@ -241,16 +246,18 @@ async function verPrecos(botao, itemUrl, numeroItem) {
 }
 
 function renderTermos(termos) {
-    const area = document.getElementById('extras');
-    if (!termos.length) return;
+    const area = document.getElementById('termos');
+    if (!area) return;
 
-    const html = `<div class="card"><h2>Termos de contrato</h2>
-        <ul class="docs">${termos.map(t => `<li>
-            <strong>${escapar(t.numeroTermoContrato || t.sequencialTermoContrato || 'Termo')}</strong>
-            <br><span class="mudo">${escapar(t.tipoTermoContratoNome || '')} · ${escapar(t.dataAssinatura || '')}</span>
-        </li>`).join('')}</ul></div>`;
+    if (!termos.length) {
+        area.innerHTML = '<p class="mudo">Nenhum termo registrado.</p>';
+        return;
+    }
 
-    area.insertAdjacentHTML('beforeend', html);
+    area.innerHTML = `<ul class="docs">${termos.map(t => `<li>
+        <strong>${escapar(t.numeroTermoContrato || t.sequencialTermoContrato || 'Termo')}</strong>
+        <br><span class="mudo">${escapar(t.tipoTermoContratoNome || '')} · ${escapar(t.dataAssinatura || '')}</span>
+    </li>`).join('')}</ul>`;
 }
 
 /* ---------- resumo a partir da listagem ---------- */
@@ -311,6 +318,8 @@ async function carregar() {
     const params = new URLSearchParams(window.location.search);
     const itemUrl = params.get('u') || '';
 
+    itemUrlAtual = itemUrl;
+
     const status = document.getElementById('status');
 
     if (!itemUrl) {
@@ -335,40 +344,127 @@ async function carregar() {
         status.innerHTML = `<div class="aviso${resumo ? '' : ' erro'}">${escapar(mensagemErro(erro))}</div>`;
     }
 
-    // 3. Documentos
-    try {
-        renderArquivos(await PNCP.arquivos(itemUrl));
-    } catch (erro) {
-        document.getElementById('arquivos').innerHTML =
-            `<div class="aviso erro">${escapar(mensagemErro(erro))}</div>`;
-    }
-
+    // 3. Blocos sob demanda: só aparecem os que fazem sentido para o tipo
     const tipo = itemUrl.split('/').filter(Boolean)[0];
 
-    // 4. Itens e preços
-    if (tipo === 'compras') {
-        try {
-            renderItens(await PNCP.itens(itemUrl), itemUrl);
-        } catch (erro) {
-            document.getElementById('itens').innerHTML =
-                `<div class="aviso erro">${escapar(mensagemErro(erro))}</div>`;
-        }
-    } else {
-        const bloco = document.getElementById('bloco-itens');
-        if (bloco) bloco.style.display = 'none';
+    const blocoItens = document.getElementById('bloco-itens');
+    const blocoTermos = document.getElementById('bloco-termos');
+
+    if (blocoItens) blocoItens.style.display = tipo === 'compras' ? '' : 'none';
+    if (blocoTermos) blocoTermos.style.display = tipo === 'contratos' ? '' : 'none';
+}
+
+/* ---------- carga sob demanda ---------- */
+
+async function alternarDocumentos() {
+    const botao = document.getElementById('btnDocumentos');
+    const area = document.getElementById('arquivos');
+
+    if (area.style.display === 'none') {
+        area.style.display = '';
+        botao.textContent = 'Ocultar documentos';
+        return;
     }
 
-    // 5. Termos do contrato
-    if (tipo === 'contratos') {
-        try {
-            renderTermos(await PNCP.termos(itemUrl));
-        } catch (_) {
-            /* opcional */
-        }
+    if (jaCarregado.documentos) {
+        area.style.display = 'none';
+        botao.textContent = 'Ver documentos';
+        return;
+    }
+
+    botao.disabled = true;
+    area.innerHTML = '<p><span class="carregando"></span> Carregando documentos...</p>';
+
+    try {
+        renderArquivos(await PNCP.arquivos(itemUrlAtual));
+        jaCarregado.documentos = true;
+        botao.textContent = 'Ocultar documentos';
+    } catch (erro) {
+        area.innerHTML = `<div class="aviso erro">${escapar(mensagemErro(erro))}</div>`;
+    } finally {
+        botao.disabled = false;
+    }
+}
+
+async function alternarItens() {
+    const botao = document.getElementById('btnItens');
+    const area = document.getElementById('itens');
+
+    if (area.style.display === 'none') {
+        area.style.display = '';
+        botao.textContent = 'Ocultar itens';
+        return;
+    }
+
+    if (jaCarregado.itens) {
+        area.style.display = 'none';
+        botao.textContent = 'Ver itens e preços';
+        return;
+    }
+
+    botao.disabled = true;
+    area.innerHTML = '<p><span class="carregando"></span> Carregando itens...</p>';
+
+    try {
+        renderItens(await PNCP.itens(itemUrlAtual), itemUrlAtual);
+        jaCarregado.itens = true;
+        botao.textContent = 'Ocultar itens';
+    } catch (erro) {
+        area.innerHTML = `<div class="aviso erro">${escapar(mensagemErro(erro))}</div>`;
+    } finally {
+        botao.disabled = false;
+    }
+}
+
+async function alternarTermos() {
+    const botao = document.getElementById('btnTermos');
+    const area = document.getElementById('termos');
+
+    if (area.style.display === 'none') {
+        area.style.display = '';
+        botao.textContent = 'Ocultar termos';
+        return;
+    }
+
+    if (jaCarregado.termos) {
+        area.style.display = 'none';
+        botao.textContent = 'Ver termos';
+        return;
+    }
+
+    botao.disabled = true;
+    area.innerHTML = '<p><span class="carregando"></span> Carregando termos...</p>';
+
+    try {
+        renderTermos(await PNCP.termos(itemUrlAtual));
+        jaCarregado.termos = true;
+        botao.textContent = 'Ocultar termos';
+    } catch (erro) {
+        area.innerHTML = `<div class="aviso erro">${escapar(mensagemErro(erro))}</div>`;
+    } finally {
+        botao.disabled = false;
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('nav a').forEach(a => a.classList.remove('ativo'));
+
+    // Conteúdo pesado começa oculto e só carrega no clique
+    ['arquivos', 'itens', 'termos'].forEach(id => {
+        const area = document.getElementById(id);
+        if (area) area.style.display = 'none';
+    });
+
+    const botoes = [
+        ['btnDocumentos', alternarDocumentos],
+        ['btnItens', alternarItens],
+        ['btnTermos', alternarTermos]
+    ];
+
+    botoes.forEach(([id, acao]) => {
+        const botao = document.getElementById(id);
+        if (botao) botao.addEventListener('click', acao);
+    });
+
     carregar();
 });
